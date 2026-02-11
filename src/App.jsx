@@ -596,10 +596,13 @@ const AddCvModal = ({ cvBeingAdded, setCvBeingAdded, handlePdfUpload, saveCv, on
 export default function ApplyIQ() {
 
   const handleDownloadPdf = () => {
-    // You can customize the name pulled from the CV or let user enter it
-    // For now, using a default — we can add a name input field later if you want
-    generateAtsResumePdf(resumeOutput, "Aayush More Resume");
-    notify("PDF downloaded!");
+    try {
+      generateAtsResumePdf(resumeOutput, "Aayush More Resume");
+      notify("PDF downloaded!");
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      notify("PDF download failed - check console", "error");
+    }
   };
 
   // Persisted state
