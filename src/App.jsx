@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { generateAtsResumePdf } from "./resumePdfGenerator";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -448,7 +449,16 @@ const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, de
       <div style={{ ...S.card, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={S.cardTitle}>ATS-Optimised Resume Output</div>
-          {resumeOutput && <button onClick={handleCopy} style={S.btn("secondary")}><Icon name="copy" size={12} />{copySuccess ? "Copied!" : "Copy Text"}</button>}
+          {resumeOutput && (
+  <div style={{ display: "flex", gap: 8 }}>
+    <button onClick={handleCopy} style={S.btn("secondary")}>
+      <Icon name="copy" size={12} />{copySuccess ? "Copied!" : "Copy Text"}
+    </button>
+    {/* <button onClick={handleDownloadPdf} style={S.btn("primary")}>
+      <Icon name="download" size={12} />Download PDF
+    </button> */}
+  </div>
+)}
         </div>
         {!resumeOutput && !isGenerating && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: t.textMuted, gap: 12 }}>
@@ -584,6 +594,13 @@ const AddCvModal = ({ cvBeingAdded, setCvBeingAdded, handlePdfUpload, saveCv, on
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function ApplyIQ() {
+
+  const handleDownloadPdf = () => {
+    // You can customize the name pulled from the CV or let user enter it
+    // For now, using a default — we can add a name input field later if you want
+    generateAtsResumePdf(resumeOutput, "Aayush More Resume");
+    notify("PDF downloaded!");
+  };
 
   // Persisted state
   const [dark,       setDark]       = useState(() => lsGet(LS.DARK, true));
