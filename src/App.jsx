@@ -454,9 +454,9 @@ const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, de
     <button onClick={handleCopy} style={S.btn("secondary")}>
       <Icon name="copy" size={12} />{copySuccess ? "Copied!" : "Copy Text"}
     </button>
-    {/* <button onClick={handleDownloadPdf} style={S.btn("primary")}>
+    { <button onClick={handleDownloadPdf} style={S.btn("primary")}>
       <Icon name="download" size={12} />Download PDF
-    </button> */}
+    </button> }
   </div>
 )}
         </div>
