@@ -687,23 +687,23 @@ export default function ApplyIQ() {
     if (!resumeJD.trim()) { notify("Please paste a job description","error"); return; }
     setIsGenerating(true); setResumeOutput("");
     try {
-      const res  = await fetch("https://api.anthropic.com/v1/messages", {
+      // Calls our serverless function in /api/generate-resume.js
+      // The function holds the API key secretly on Vercel's servers
+      const res = await fetch("/api/generate-resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 1000,
-          messages: [{ role: "user", content: [
-            { type: "document", source: { type: "base64", media_type: "application/pdf", data: cv.base64 } },
-            { type: "text", text: `You are an expert ATS resume consultant specialising in finance and fintech.\n\nOptimise the attached CV for this job description.\n\nJOB DESCRIPTION:\n${resumeJD}\n\nProvide:\n1. ATS KEYWORD ANALYSIS\n2. OPTIMISED PROFESSIONAL SUMMARY\n3. ATS SKILLS SECTION\n4. EXPERIENCE BULLET REWRITES\n5. ATS SCORE (out of 100)\n6. FORMATTING TIPS` }
-          ]}]
+          cvBase64: cv.base64,
+          jobDescription: resumeJD,
         }),
       });
-      const data   = await res.json();
-      const output = data.content?.filter(b => b.type==="text").map(b => b.text).join("\n") || "No response.";
-      setResumeOutput(output); notify("Resume optimised!");
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setResumeOutput(data.result);
+      notify("Resume optimised!");
     } catch (err) {
-      setResumeOutput(`⚠️ API Error: ${err.message}\n\nThe Claude API requires a server-side key for security.\nThis will work fully once deployed to Vercel in Phase 5.`);
-      notify("API error","error");
+      setResumeOutput(`⚠️ Error: ${err.message}\n\nMake sure ANTHROPIC_API_KEY is set in Vercel environment variables.`);
+      notify("Error — check API key", "error");
     } finally { setIsGenerating(false); }
   };
   const handleCopy = () => { navigator.clipboard.writeText(resumeOutput); setCopySuccess(true); setTimeout(()=>setCopySuccess(false),2000); };
