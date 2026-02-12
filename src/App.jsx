@@ -596,15 +596,7 @@ const AddCvModal = ({ cvBeingAdded, setCvBeingAdded, handlePdfUpload, saveCv, on
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function ApplyIQ() {
 
-    const handleDownloadPdf = () => {
-  try {
-     generateAtsResumePdf(resumeOutput, "Aayush More Resume");
-     notify("PDF downloaded!");
-   } catch (err) {
-     console.error("PDF generation error:", err);
-     notify("PDF download failed - check console", "error");
-   }
- };
+    
 
   // Persisted state
   const [dark,       setDark]       = useState(() => lsGet(LS.DARK, true));
@@ -700,7 +692,16 @@ export default function ApplyIQ() {
   };
   const deleteCv     = id  => { setCvLibrary(prev => prev.filter(c => c.id !== id)); if (selectedCvId === id) setSelectedCvId(null); notify("CV removed","error"); };
   const setDefaultCv = id  => { setCvLibrary(prev => prev.map(c => ({...c, isDefault: c.id===id}))); setSelectedCvId(id); notify("Default CV updated"); };
-
+  
+  const handleDownloadPdf = () => {
+    try {
+       generateAtsResumePdf(resumeOutput, "Aayush More Resume");
+       notify("PDF downloaded!");
+     } catch (err) {
+       console.error("PDF generation error:", err);
+       notify("PDF download failed - check console", "error");
+     }
+   };
   // AI resume
   const handleGenerateResume = async () => {
     const cv = cvLibrary.find(c => c.id === selectedCvId) || cvLibrary.find(c => c.isDefault);
