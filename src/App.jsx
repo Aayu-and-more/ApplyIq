@@ -455,9 +455,9 @@ const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, de
     <button onClick={handleCopy} style={S.btn("secondary")}>
       <Icon name="copy" size={12} />{copySuccess ? "Copied!" : "Copy Text"}
     </button>
-    { <button onClick={handleDownloadPdf} style={S.btn("primary")}>
+    {/* <button onClick={handleDownloadPdf} style={S.btn("primary")}>
       <Icon name="download" size={12} />Download PDF
-    </button> }
+    </button> */}
   </div>
 )}
         </div>
@@ -693,15 +693,15 @@ export default function ApplyIQ() {
   const deleteCv     = id  => { setCvLibrary(prev => prev.filter(c => c.id !== id)); if (selectedCvId === id) setSelectedCvId(null); notify("CV removed","error"); };
   const setDefaultCv = id  => { setCvLibrary(prev => prev.map(c => ({...c, isDefault: c.id===id}))); setSelectedCvId(id); notify("Default CV updated"); };
   
-  const handleDownloadPdf = () => {
-    try {
-       generateAtsResumePdf(resumeOutput, "Aayush More Resume");
-       notify("PDF downloaded!");
-     } catch (err) {
-       console.error("PDF generation error:", err);
-       notify("PDF download failed - check console", "error");
-     }
-   };
+  // const handleDownloadPdf = () => {
+//   try {
+//     generateAtsResumePdf(resumeOutput, "Aayush More Resume");
+//     notify("PDF downloaded!");
+//   } catch (err) {
+//     console.error("PDF generation error:", err);
+//     notify("PDF download failed - check console", "error");
+//   }
+// };
   // AI resume
   const handleGenerateResume = async () => {
     const cv = cvLibrary.find(c => c.id === selectedCvId) || cvLibrary.find(c => c.isDefault);
