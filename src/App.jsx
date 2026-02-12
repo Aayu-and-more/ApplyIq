@@ -454,9 +454,9 @@ const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, de
     <button onClick={handleCopy} style={S.btn("secondary")}>
       <Icon name="copy" size={12} />{copySuccess ? "Copied!" : "Copy Text"}
     </button>
-    { <button onClick={handleDownloadPdf} style={S.btn("primary")}>
+    {/* <button onClick={handleDownloadPdf} style={S.btn("primary")}>
       <Icon name="download" size={12} />Download PDF
-    </button> }
+    </button> */}
   </div>
 )}
         </div>
@@ -595,15 +595,15 @@ const AddCvModal = ({ cvBeingAdded, setCvBeingAdded, handlePdfUpload, saveCv, on
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function ApplyIQ() {
 
-  const handleDownloadPdf = () => {
-    try {
-      generateAtsResumePdf(resumeOutput, "Aayush More Resume");
-      notify("PDF downloaded!");
-    } catch (err) {
-      console.error("PDF generation error:", err);
-      notify("PDF download failed - check console", "error");
-    }
-  };
+  // const handleDownloadPdf = () => {
+//   try {
+//     generateAtsResumePdf(resumeOutput, "Aayush More Resume");
+//     notify("PDF downloaded!");
+//   } catch (err) {
+//     console.error("PDF generation error:", err);
+//     notify("PDF download failed - check console", "error");
+//   }
+// };
 
   // Persisted state
   const [dark,       setDark]       = useState(() => lsGet(LS.DARK, true));
