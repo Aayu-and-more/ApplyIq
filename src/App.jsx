@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-// 1. Import is now active
 import { generateAtsResumePdf } from "./resumePdfGenerator";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -78,7 +77,6 @@ const Icon = ({ name, size = 16, color = "currentColor" }) => {
 };
 
 // ─── THEME + STYLE FACTORIES ──────────────────────────────────────────────────
-// These are plain functions, not components — safe to call inside ApplyIQ
 const buildTheme = (dark) => ({
   bg:        dark ? "#080d1a" : "#f0f4fa",
   surface:   dark ? "#0e1524" : "#ffffff",
@@ -112,12 +110,7 @@ const buildStyles = (t) => ({
   row:     { display: "flex", gap: 14, marginBottom: 20 },
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// VIEWS — all defined OUTSIDE ApplyIQ()
-// KEY LESSON: Never define a component inside another component's render.
-// React would treat it as a brand-new component type every render, unmounting
-// and remounting it — which destroys input focus after every keystroke.
-// ═══════════════════════════════════════════════════════════════════════════════
+// ─── VIEWS ────────────────────────────────────────────────────────────────────
 
 const DashboardView = ({ apps, staleApps, thisWeekApps, weeklyGoal, goalPct, responseRate, offerCount, interviewRate, statusDist, setView, setShowGoalModal, exportCSV, t, S }) => (
   <div>
@@ -390,7 +383,6 @@ const AnalyticsView = ({ apps, staleApps, responseRate, interviewRate, offerCoun
   );
 };
 
-// 2. Updated ResumeView with handleDownloadPdf
 const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, deleteCv, resumeJD, setResumeJD, resumeOutput, isGenerating, handleGenerateResume, handleCopy, handleDownloadPdf, copySuccess, setShowCvModal, t, S }) => {
   const activeCv = cvLibrary.find(c => c.id === selectedCvId) || cvLibrary.find(c => c.isDefault);
   return (
@@ -457,9 +449,8 @@ const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, de
               <button onClick={handleCopy} style={S.btn("secondary")}>
                 <Icon name="copy" size={12} />{copySuccess ? "Copied!" : "Copy Text"}
               </button>
-              {/* 3. Button is now active and safe */}
               <button onClick={handleDownloadPdf} style={S.btn("primary")}>
-                <Icon name="download" size={12} />Download PDF
+                <Icon name="download" size={12} />Download Optimised CV
               </button>
             </div>
           )}
@@ -594,12 +585,8 @@ const AddCvModal = ({ cvBeingAdded, setCvBeingAdded, handlePdfUpload, saveCv, on
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN APP
-// ═══════════════════════════════════════════════════════════════════════════════
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function ApplyIQ() {
-
-  // Persisted state
   const [dark,       setDark]       = useState(() => lsGet(LS.DARK, true));
   const [apps,       setApps]       = useState(() => lsGet(LS.APPS, SEED_APPS));
   const [weeklyGoal, setWeeklyGoal] = useState(() => lsGet(LS.GOAL, 10));
@@ -610,7 +597,6 @@ export default function ApplyIQ() {
   useEffect(() => lsSet(LS.GOAL, weeklyGoal), [weeklyGoal]);
   useEffect(() => lsSet(LS.CVS,  cvLibrary),  [cvLibrary]);
 
-  // UI state
   const [view,          setView]         = useState("dashboard");
   const [showAddModal,  setShowAddModal] = useState(false);
   const [showGoalModal, setShowGoalModal]= useState(false);
@@ -627,17 +613,14 @@ export default function ApplyIQ() {
   const emptyForm = { company:"", role:"", date: new Date().toISOString().slice(0,10), source:"LinkedIn", status:"Applied", salary:"", priority:"Target", notes:"" };
   const [form, setForm] = useState(emptyForm);
 
-  // Theme & styles
   const t = buildTheme(dark);
   const S = buildStyles(t);
 
-  // Toast
   const notify = useCallback((msg, type = "success") => {
     setNotification({ msg, type });
     setTimeout(() => setNotification(null), 3000);
   }, []);
 
-  // Derived stats
   const today         = new Date();
   const staleApps     = apps.filter(a => { const d = (today - new Date(a.date)) / 86400000; return d > 14 && (a.status === "Applied" || a.status === "Screening"); });
   const thisWeekApps  = apps.filter(a => (today - new Date(a.date)) / 86400000 <= 7).length;
@@ -651,7 +634,6 @@ export default function ApplyIQ() {
     return (a.company.toLowerCase().includes(q) || a.role.toLowerCase().includes(q)) && (filterStatus === "All" || a.status === filterStatus);
   }), [apps, searchTerm, filterStatus]);
 
-  // CRUD
   const handleSave = () => {
     if (!form.company.trim() || !form.role.trim()) return;
     if (form.id) { setApps(prev => prev.map(a => a.id === form.id ? { ...form } : a)); notify("Application updated"); }
@@ -662,7 +644,6 @@ export default function ApplyIQ() {
   const handleEdit       = app => { setForm({ ...app }); setShowAddModal(true); };
   const handleKanbanDrop = (appId, newStatus) => { setApps(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a)); notify(`Moved to ${newStatus}`); };
 
-  // CSV
   const exportCSV = () => {
     const headers = ["Company","Role","Date","Source","Status","Priority","Salary","Notes"];
     const rows    = apps.map(a => [a.company,a.role,a.date,a.source,a.status,a.priority,a.salary||"",`"${(a.notes||"").replace(/"/g,'""')}"`]);
@@ -674,7 +655,6 @@ export default function ApplyIQ() {
     URL.revokeObjectURL(url); notify("CSV exported");
   };
 
-  // CV library
   const handlePdfUpload = (e) => {
     const file = e.target.files[0];
     if (!file || file.type !== "application/pdf") { notify("Please upload a PDF","error"); return; }
@@ -694,7 +674,7 @@ export default function ApplyIQ() {
   const deleteCv     = id  => { setCvLibrary(prev => prev.filter(c => c.id !== id)); if (selectedCvId === id) setSelectedCvId(null); notify("CV removed","error"); };
   const setDefaultCv = id  => { setCvLibrary(prev => prev.map(c => ({...c, isDefault: c.id===id}))); setSelectedCvId(id); notify("Default CV updated"); };
   
-  // 4. Safe PDF Handler
+  // Safe PDF Handler
   const handleDownloadPdf = () => {
     if (!resumeOutput) {
       notify("No content to download", "error");
@@ -709,22 +689,16 @@ export default function ApplyIQ() {
     }
   };
 
-  // AI resume
   const handleGenerateResume = async () => {
     const cv = cvLibrary.find(c => c.id === selectedCvId) || cvLibrary.find(c => c.isDefault);
     if (!cv)              { notify("Please select a CV first","error"); return; }
     if (!resumeJD.trim()) { notify("Please paste a job description","error"); return; }
     setIsGenerating(true); setResumeOutput("");
     try {
-      // Calls our serverless function in /api/generate-resume.js
-      // The function holds the API key secretly on Vercel's servers
       const res = await fetch("/api/generate-resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cvBase64: cv.base64,
-          jobDescription: resumeJD,
-        }),
+        body: JSON.stringify({ cvBase64: cv.base64, jobDescription: resumeJD }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -737,19 +711,16 @@ export default function ApplyIQ() {
   };
   const handleCopy = () => { navigator.clipboard.writeText(resumeOutput); setCopySuccess(true); setTimeout(()=>setCopySuccess(false),2000); };
 
-  const sp = { t, S }; // shared props passed to every view
+  const sp = { t, S };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: t.bg, fontFamily: "'DM Sans', system-ui, sans-serif", color: t.text, transition: "background 0.3s, color 0.3s" }}>
-
-      {/* Toast */}
       {notification && (
         <div style={{ position: "fixed", top: 18, right: 18, zIndex: 100, background: notification.type==="error" ? "#ef444420" : "#2563eb20", border: `1px solid ${notification.type==="error" ? "#ef4444" : "#2563eb"}`, color: notification.type==="error" ? "#ef4444" : "#2563eb", padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, backdropFilter: "blur(8px)" }}>
           {notification.msg}
         </div>
       )}
 
-      {/* Sidebar */}
       <div style={{ width: 220, background: t.surface, borderRight: `1px solid ${t.border}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
         <div style={{ padding: "0 20px 24px", borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
           <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.5px", color: t.accent, display: "flex", alignItems: "center", gap: 8 }}>
@@ -787,7 +758,6 @@ export default function ApplyIQ() {
         </div>
       </div>
 
-      {/* Main */}
       <div style={{ flex: 1, padding: "28px 32px", overflowY: "auto", minWidth: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
           <div>
