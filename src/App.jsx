@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+// 1. Import is now active
 import { generateAtsResumePdf } from "./resumePdfGenerator";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -389,7 +390,8 @@ const AnalyticsView = ({ apps, staleApps, responseRate, interviewRate, offerCoun
   );
 };
 
-const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, deleteCv, resumeJD, setResumeJD, resumeOutput, isGenerating, handleGenerateResume, handleCopy, copySuccess, setShowCvModal, t, S }) => {
+// 2. Updated ResumeView with handleDownloadPdf
+const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, deleteCv, resumeJD, setResumeJD, resumeOutput, isGenerating, handleGenerateResume, handleCopy, handleDownloadPdf, copySuccess, setShowCvModal, t, S }) => {
   const activeCv = cvLibrary.find(c => c.id === selectedCvId) || cvLibrary.find(c => c.isDefault);
   return (
     <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 16, height: "calc(100vh - 148px)" }}>
@@ -451,15 +453,16 @@ const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, de
           <div style={S.cardTitle}>ATS-Optimised Resume Output</div>
           
           {resumeOutput && (
-  <div style={{ display: "flex", gap: 8 }}>
-    <button onClick={handleCopy} style={S.btn("secondary")}>
-      <Icon name="copy" size={12} />{copySuccess ? "Copied!" : "Copy Text"}
-    </button>
-    {/* <button onClick={handleDownloadPdf} style={S.btn("primary")}>
-      <Icon name="download" size={12} />Download PDF
-    </button> */}
-  </div>
-)}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleCopy} style={S.btn("secondary")}>
+                <Icon name="copy" size={12} />{copySuccess ? "Copied!" : "Copy Text"}
+              </button>
+              {/* 3. Button is now active and safe */}
+              <button onClick={handleDownloadPdf} style={S.btn("primary")}>
+                <Icon name="download" size={12} />Download PDF
+              </button>
+            </div>
+          )}
         </div>
         {!resumeOutput && !isGenerating && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: t.textMuted, gap: 12 }}>
@@ -596,8 +599,6 @@ const AddCvModal = ({ cvBeingAdded, setCvBeingAdded, handlePdfUpload, saveCv, on
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function ApplyIQ() {
 
-    
-
   // Persisted state
   const [dark,       setDark]       = useState(() => lsGet(LS.DARK, true));
   const [apps,       setApps]       = useState(() => lsGet(LS.APPS, SEED_APPS));
@@ -693,15 +694,21 @@ export default function ApplyIQ() {
   const deleteCv     = id  => { setCvLibrary(prev => prev.filter(c => c.id !== id)); if (selectedCvId === id) setSelectedCvId(null); notify("CV removed","error"); };
   const setDefaultCv = id  => { setCvLibrary(prev => prev.map(c => ({...c, isDefault: c.id===id}))); setSelectedCvId(id); notify("Default CV updated"); };
   
-  // const handleDownloadPdf = () => {
-//   try {
-//     generateAtsResumePdf(resumeOutput, "Aayush More Resume");
-//     notify("PDF downloaded!");
-//   } catch (err) {
-//     console.error("PDF generation error:", err);
-//     notify("PDF download failed - check console", "error");
-//   }
-// };
+  // 4. Safe PDF Handler
+  const handleDownloadPdf = () => {
+    if (!resumeOutput) {
+      notify("No content to download", "error");
+      return;
+    }
+    try {
+      generateAtsResumePdf(resumeOutput, "ATS_Optimised_Resume");
+      notify("PDF downloaded!");
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      notify("PDF download failed", "error");
+    }
+  };
+
   // AI resume
   const handleGenerateResume = async () => {
     const cv = cvLibrary.find(c => c.id === selectedCvId) || cvLibrary.find(c => c.isDefault);
@@ -804,7 +811,7 @@ export default function ApplyIQ() {
         {view==="kanban"       && <KanbanView       {...sp} apps={apps} handleKanbanDrop={handleKanbanDrop} />}
         {view==="applications" && <ApplicationsView {...sp} filteredApps={filteredApps} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleEdit={handleEdit} handleDelete={handleDelete} setShowAddModal={setShowAddModal} exportCSV={exportCSV} />}
         {view==="analytics"    && <AnalyticsView    {...sp} apps={apps} staleApps={staleApps} responseRate={responseRate} interviewRate={interviewRate} offerCount={offerCount} />}
-        {view==="resume"       && <ResumeView       {...sp} cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setDefaultCv={setDefaultCv} deleteCv={deleteCv} resumeJD={resumeJD} setResumeJD={setResumeJD} resumeOutput={resumeOutput} isGenerating={isGenerating} handleGenerateResume={handleGenerateResume} handleCopy={handleCopy} copySuccess={copySuccess} setShowCvModal={setShowCvModal} />}
+        {view==="resume"       && <ResumeView       {...sp} cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setDefaultCv={setDefaultCv} deleteCv={deleteCv} resumeJD={resumeJD} setResumeJD={setResumeJD} resumeOutput={resumeOutput} isGenerating={isGenerating} handleGenerateResume={handleGenerateResume} handleCopy={handleCopy} handleDownloadPdf={handleDownloadPdf} copySuccess={copySuccess} setShowCvModal={setShowCvModal} />}
       </div>
 
       {showAddModal  && <AddAppModal  {...sp} form={form} setForm={setForm} handleSave={handleSave} onClose={()=>setShowAddModal(false)} />}
