@@ -1,14 +1,18 @@
 export default async function handler(req, res) {
-  // Block anything that isn't a POST request
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const { cvBase64, jobDescription } = req.body;
 
-  // Basic validation
   if (!cvBase64 || !jobDescription) {
     return res.status(400).json({ error: "Missing cvBase64 or jobDescription" });
+  }
+
+  // Check if API Key is missing in Vercel
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error("Missing ANTHROPIC_API_KEY environment variable");
+    return res.status(500).json({ error: "Server Error: API Key not configured in Vercel." });
   }
 
   try {
@@ -20,36 +24,26 @@ export default async function handler(req, res) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        // Ensure you are using a valid model ID. 
-        // "claude-3-5-sonnet-20240620" is the current best for this task.
-        model: "claude-3-5-sonnet-20240620", 
+        // Switched to Claude 3.0 Sonnet (Standard, widely available)
+        model: "claude-3-sonnet-20240229", 
         max_tokens: 3000,
         messages: [{
           role: "user",
           content: [
             {
               type: "document",
-              source: {
-                type: "base64",
-                media_type: "application/pdf",
-                data: cvBase64,
-              },
+              source: { type: "base64", media_type: "application/pdf", data: cvBase64 },
             },
             {
               type: "text",
-              text: `You are an expert Resume Writer. Your goal is to rewrite the attached CV to target the Job Description provided below.
+              text: `You are an expert Resume Writer. Rewrite the attached CV to target the Job Description below.
 
-STRICT OUTPUT FORMATTING RULES (Crucial for PDF generation):
-1. Return ONLY the final resume text. Do not write "Here is your resume" or "I have optimized it".
-2. NO MARKDOWN formatting (Do not use **bold** or ## headers).
-3. LINE 1: Put the Candidate Name.
-4. LINE 2: Put the Contact Details (Phone | Email | LinkedIn | Location).
-5. SECTION HEADERS: Write section headers in ALL CAPS (e.g., PROFESSIONAL SUMMARY, EXPERIENCE, EDUCATION, SKILLS). 
-6. BULLET POINTS: Start every bullet point with a "•" character.
-7. CONTENT: 
-   - Use keywords from the Job Description naturally.
-   - Quantify results where possible (e.g., "Improved efficiency by 20%").
-   - Ensure the layout is standard: Summary -> Skills -> Experience -> Education.
+STRICT OUTPUT RULES:
+1. Return ONLY the final resume text.
+2. LINE 1: Candidate Name.
+3. LINE 2: Contact Details.
+4. SECTION HEADERS: ALL CAPS (e.g., EXPERIENCE). 
+5. BULLET POINTS: Start with "•".
 
 JOB DESCRIPTION:
 ${jobDescription}`,
@@ -61,11 +55,12 @@ ${jobDescription}`,
 
     const data = await response.json();
 
+    // If Anthropic returns an error, throw it with the details
     if (data.error) {
-        throw new Error(data.error.message);
+      console.error("Anthropic API Error:", JSON.stringify(data.error, null, 2));
+      throw new Error(data.error.message || "Unknown error from Anthropic");
     }
 
-    // Extract text from Claude's response
     const result = data.content
       ?.filter(b => b.type === "text")
       .map(b => b.text)
@@ -74,7 +69,7 @@ ${jobDescription}`,
     res.status(200).json({ result });
 
   } catch (err) {
-    console.error("Resume generation error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Resume generation error:", err.message);
+    res.status(500).json({ error: `Claude API Error: ${err.message}` });
   }
 }
