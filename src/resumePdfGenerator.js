@@ -1,7 +1,10 @@
 import jsPDF from "jspdf";
 
-export const generateAtsResumePdf = (content, filename = "My_Optimised_Resume") => {
-  if (!content) return;
+export const generateAtsResumePdf = (content, filename = "resume") => {
+  if (!content) {
+    console.error("No content provided to PDF generator");
+    return;
+  }
 
   const doc = new jsPDF({
     orientation: "portrait",
@@ -9,115 +12,206 @@ export const generateAtsResumePdf = (content, filename = "My_Optimised_Resume") 
     format: "a4",
   });
 
-  // ─── HARVARD STYLE CONFIG ──────────────────────────────────────────────────
-  const margin = 50; // Standard 1-inch-ish margins
+  const margin = 54;
   const pageWidth = doc.internal.pageSize.getWidth();
-  const contentWidth = pageWidth - (margin * 2);
-  const lineHeight = 14; 
-  let cursorY = 50;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const maxLineWidth = pageWidth - margin * 2;
 
-  // Helper to check for page breaks
-  const checkPageBreak = (add = lineHeight) => {
-    if (cursorY + add > doc.internal.pageSize.getHeight() - margin) {
+  // Sizes and spacing – match app readability
+  const bodySize = 11;
+  const nameSize = 20;
+  const sectionSize = 12;
+  const lineHeight = 13;
+  const bulletIndent = 18;
+  const sectionTopGap = 20;
+  const sectionBottomGap = 10;
+  const blockGap = 8; // between role and bullets
+
+  const lines = content.split("\n").map((l) => l.trim()).filter(Boolean);
+  let cursorY = margin;
+  let isFirstLine = true;
+  let contactRendered = false;
+
+  const drawLine = (y, thick = 0.5) => {
+    doc.setLineWidth(thick);
+    doc.line(margin, y, pageWidth - margin, y);
+  };
+
+  const isSectionHeader = (line) => {
+    if (line.startsWith("•") || line.includes("|")) return false;
+    const u = line.toUpperCase();
+    return line === u && line.length > 2 && line.length < 50;
+  };
+
+  const isDateOnlyLine = (line) => {
+    const t = line.trim();
+    return /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s*[-–—]\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)?\s*\d{4}$/i.test(t) ||
+      /^\d{4}\s*[-–—]\s*\d{4}$/.test(t) || /^Present$/i.test(t);
+  };
+
+  // Match "(April 2025 - Present)" or "(MM/YYYY - MM/YYYY)" at end of line
+  const extractDateFromParens = (line) => {
+    const m = line.match(/\s*\(([^)]+)\)\s*$/);
+    return m ? { date: m[1].trim(), rest: line.slice(0, m.index).trim() } : null;
+  };
+
+  const checkPageBreak = (need) => {
+    if (cursorY + need > pageHeight - margin) {
       doc.addPage();
       cursorY = margin;
     }
   };
 
-  // 1. SPLIT CONTENT INTO LINES
-  // We split by newline first to preserve the AI's structure
-  const rawLines = content.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    checkPageBreak(lineHeight * 3);
 
-  // 2. PARSE AND RENDER
-  // We assume:
-  // - Line 1 = Name
-  // - Line 2 = Contact Info
-  // - ALL CAPS LINES = Section Headers
-  // - Lines starting with -, *, • = Bullets
-
-  doc.setFont("times", "normal"); // Times New Roman is standard for Harvard style
-
-  rawLines.forEach((line, index) => {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      cursorY += 6; // Small gap for empty lines
-      return;
+    // —— 1. Name (first line)
+    if (isFirstLine && !line.startsWith("•") && line.length < 70 && !line.includes("@")) {
+      doc.setFontSize(nameSize);
+      doc.setFont("helvetica", "bold");
+      doc.text(line.toUpperCase(), pageWidth / 2, cursorY, { align: "center" });
+      cursorY += lineHeight + 8;
+      isFirstLine = false;
+      continue;
     }
 
-    // A. NAME (First line)
-    if (index === 0) {
-      doc.setFont("times", "bold");
-      doc.setFontSize(20);
-      doc.text(trimmed.toUpperCase(), pageWidth / 2, cursorY, { align: "center" });
-      cursorY += 24;
-      return;
+    // —— 2. Contact (once): email | phone | linkedin | location
+    if (
+      !contactRendered &&
+      (line.includes("@") || line.includes("linkedin") || line.includes("http")) &&
+      !line.startsWith("•") &&
+      (line.includes("|") || line.includes("•"))
+    ) {
+      contactRendered = true;
+      doc.setFontSize(bodySize);
+      doc.setFont("helvetica", "normal");
+      const contact = line.replace(/\|/g, "  |  ");
+      doc.text(contact, pageWidth / 2, cursorY, { align: "center" });
+      cursorY += lineHeight + 14;
+      drawLine(cursorY, 0.7);
+      cursorY += sectionBottomGap + 6;
+      continue;
     }
 
-    // B. CONTACT INFO (Second line - usually)
-    // Heuristic: If it's early in the doc and contains dividers like | or • or @
-    if (index === 1 || (index < 4 && (trimmed.includes("|") || trimmed.includes("@") || trimmed.includes("•")))) {
-      doc.setFont("times", "normal");
-      doc.setFontSize(10);
-      doc.text(trimmed, pageWidth / 2, cursorY, { align: "center" });
-      cursorY += 20; // Add extra space after contact info
-      return;
+    // —— 3. Section header (e.g. EXPERIENCE, EDUCATION)
+    if (isSectionHeader(line)) {
+      if (cursorY > margin + lineHeight) cursorY += sectionTopGap;
+      checkPageBreak(lineHeight * 4);
+
+      doc.setFontSize(sectionSize);
+      doc.setFont("helvetica", "bold");
+      doc.text(line, margin, cursorY);
+      cursorY += lineHeight + 6;
+      drawLine(cursorY);
+      cursorY += lineHeight + sectionBottomGap;
+      continue;
     }
 
-    // C. SECTION HEADERS (Detected by ALL CAPS and short length)
-    // e.g., "EXPERIENCE", "EDUCATION", "SKILLS"
-    const isUpperCase = trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
-    const isShort = trimmed.length < 40;
-    
-    if (isUpperCase && isShort) {
-      checkPageBreak(30);
-      cursorY += 10; // Space before header
-      
-      doc.setFont("times", "bold");
-      doc.setFontSize(11);
-      doc.text(trimmed, margin, cursorY);
-      
-      // Harvard Style Horizontal Line
-      const textWidth = doc.getTextWidth(trimmed);
-      doc.setLineWidth(0.5);
-      doc.line(margin, cursorY + 3, pageWidth - margin, cursorY + 3);
-      
-      cursorY += 18; // Space after header
-      return;
+    // —— 4. Underscore-only line
+    if (/^_+$/.test(line)) {
+      drawLine(cursorY);
+      cursorY += lineHeight;
+      continue;
     }
 
-    // D. BULLET POINTS
-    if (trimmed.startsWith("-") || trimmed.startsWith("•") || trimmed.startsWith("*")) {
-      checkPageBreak();
-      doc.setFont("times", "normal");
-      doc.setFontSize(10.5);
-      
-      const cleanLine = trimmed.replace(/^[-•*]\s?/, ""); // Remove the bullet char
-      const bulletIndent = 12;
-      
-      doc.text("•", margin + 5, cursorY); // Draw a nice bullet
-      
-      // Wrap text
-      const splitText = doc.splitTextToSize(cleanLine, contentWidth - bulletIndent);
-      doc.text(splitText, margin + bulletIndent, cursorY);
-      
-      cursorY += (splitText.length * lineHeight);
-      return;
+    // —— 5. Bullet
+    if (line.startsWith("•")) {
+      doc.setFontSize(bodySize);
+      doc.setFont("helvetica", "normal");
+      const text = line.slice(1).trim();
+      const wrapped = doc.splitTextToSize(text, maxLineWidth - bulletIndent);
+      for (const w of wrapped) {
+        checkPageBreak(lineHeight);
+        doc.text(w, margin + bulletIndent, cursorY);
+        cursorY += lineHeight;
+      }
+      continue;
     }
 
-    // E. STANDARD TEXT (Job Titles, Dates, Summaries)
-    checkPageBreak();
-    doc.setFont("times", "normal");
-    doc.setFontSize(10.5);
-    
-    // Heuristic: If line has a date/location on the right? 
-    // For simplicity in this version, we wrap standard text.
-    // If you want Bold Company Names, you'd need the AI to mark them (e.g. **Name**)
-    // Here we just render cleanly.
-    
-    const splitBody = doc.splitTextToSize(trimmed, contentWidth);
-    doc.text(splitBody, margin, cursorY);
-    cursorY += (splitBody.length * lineHeight);
-  });
+    // —— 6. Standalone date line (right-aligned when previous was a role line)
+    if (isDateOnlyLine(line)) {
+      doc.setFontSize(bodySize);
+      doc.setFont("helvetica", "normal");
+      doc.text(line, pageWidth - margin - doc.getTextWidth(line), cursorY);
+      cursorY += lineHeight + blockGap;
+      continue;
+    }
+
+    // —— 7. Role line: "Title | Company | Location" or "Title | Company | Location (Date)"
+    if (line.includes("|") && !line.includes("@")) {
+      const withDate = extractDateFromParens(line);
+      const leftText = withDate ? withDate.rest : line;
+      const parts = leftText.split("|").map((p) => p.trim()).filter(Boolean);
+
+      doc.setFontSize(bodySize);
+      doc.setFont("helvetica", "bold");
+
+      if (withDate && withDate.date) {
+        // Same line has (Date) – left: role, right: date
+        const roleText = parts.join(" | ");
+        const dateW = doc.getTextWidth(withDate.date);
+        doc.text(roleText, margin, cursorY);
+        doc.setFont("helvetica", "normal");
+        doc.text(withDate.date, pageWidth - margin - dateW, cursorY);
+      } else if (parts.length >= 2) {
+        const last = parts[parts.length - 1];
+        const looksLikeDate = /\d{4}|Present/i.test(last) && last.length < 25;
+        if (looksLikeDate) {
+          const roleText = parts.slice(0, -1).join(" | ");
+          doc.text(roleText, margin, cursorY);
+          doc.setFont("helvetica", "normal");
+          doc.text(last, pageWidth - margin - doc.getTextWidth(last), cursorY);
+        } else {
+          const wrapped = doc.splitTextToSize(leftText, maxLineWidth);
+          for (const w of wrapped) {
+            checkPageBreak(lineHeight);
+            doc.text(w, margin, cursorY);
+            cursorY += lineHeight;
+          }
+        }
+      } else {
+        const wrapped = doc.splitTextToSize(leftText, maxLineWidth);
+        for (const w of wrapped) {
+          checkPageBreak(lineHeight);
+          doc.text(w, margin, cursorY);
+          cursorY += lineHeight;
+        }
+      }
+      doc.setFont("helvetica", "normal");
+      cursorY += lineHeight + (withDate || (parts.length >= 2) ? blockGap : 4);
+      continue;
+    }
+
+    // —— 8. Bold line that’s followed by a date (company, location, title style)
+    if (
+      line.includes(",") &&
+      !line.startsWith("•") &&
+      lines[i + 1] &&
+      isDateOnlyLine(lines[i + 1].trim())
+    ) {
+      doc.setFontSize(bodySize);
+      doc.setFont("helvetica", "bold");
+      const wrapped = doc.splitTextToSize(line, maxLineWidth);
+      for (const w of wrapped) {
+        checkPageBreak(lineHeight);
+        doc.text(w, margin, cursorY);
+        cursorY += lineHeight;
+      }
+      cursorY += lineHeight; // next line will be date (handled by 6), right-aligned
+      continue;
+    }
+
+    // —— 9. Plain body (summary, skills, etc.)
+    doc.setFontSize(bodySize);
+    doc.setFont("helvetica", "normal");
+    const wrapped = doc.splitTextToSize(line, maxLineWidth);
+    for (const w of wrapped) {
+      checkPageBreak(lineHeight);
+      doc.text(w, margin, cursorY);
+      cursorY += lineHeight;
+    }
+  }
 
   doc.save(`${filename}.pdf`);
 };
