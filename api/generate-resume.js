@@ -71,7 +71,7 @@ export default async function handler(req, res) {
 
 
     // Send to Claude 3 Haiku API
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const requestOptions = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -160,7 +160,27 @@ ${jobDescription}`
           }],
         }],
       }),
-    });
+    };
+
+    let response;
+    let retries = 3;
+    let delay = 1500;
+
+    while (retries >= 0) {
+      response = await fetch("https://api.anthropic.com/v1/messages", requestOptions);
+
+      // Break if successful or if it's an error we shouldn't retry (like 400 or 401)
+      if (response.ok || (response.status !== 429 && response.status !== 529 && response.status < 500)) {
+        break;
+      }
+
+      if (retries === 0) break;
+
+      console.warn(`Anthropic API overloaded/error (${response.status}). Retries left: ${retries}. Waiting ${delay}ms...`);
+      await new Promise(res => setTimeout(res, delay));
+      retries--;
+      delay *= 1.5; // Exponential backoff
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -174,7 +194,8 @@ ${jobDescription}`
       // If model not found, try with Haiku as fallback
       if (response.status === 404 && errorData.error?.message?.includes('model')) {
         console.log('Model not found, retrying with Claude 3 Haiku...');
-        const fallbackResponse = await fetch("https://api.anthropic.com/v1/messages", {
+
+        const fallbackRequestOptions = {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -263,7 +284,26 @@ ${jobDescription}`
               }],
             }],
           }),
-        });
+        };
+
+        let fallbackResponse;
+        let fbRetries = 3;
+        let fbDelay = 1500;
+
+        while (fbRetries >= 0) {
+          fallbackResponse = await fetch("https://api.anthropic.com/v1/messages", fallbackRequestOptions);
+
+          if (fallbackResponse.ok || (fallbackResponse.status !== 429 && fallbackResponse.status !== 529 && fallbackResponse.status < 500)) {
+            break;
+          }
+
+          if (fbRetries === 0) break;
+
+          console.warn(`Anthropic fallback API overloaded/error (${fallbackResponse.status}). Retries left: ${fbRetries}. Waiting ${fbDelay}ms...`);
+          await new Promise(res => setTimeout(res, fbDelay));
+          fbRetries--;
+          fbDelay *= 1.5;
+        }
 
         if (fallbackResponse.ok) {
           const fallbackData = await fallbackResponse.json();
