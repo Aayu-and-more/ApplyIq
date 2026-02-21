@@ -102,30 +102,17 @@ export default async function handler(req, res) {
 </ats_optimization_requirements>
 
 <formatting_rules>
+0. STRUCTURE: You MUST output the sections in this EXACT ORDER: "SUMMARY", "EDUCATION", "EXPERIENCE", "LICENSES & CERTIFICATIONS", "SKILLS".
 1. CANDIDATE NAME: Centered, full name only (no titles)
 2. CONTACT INFORMATION: Centered below name, format as: Email | Phone | LinkedIn | Location (one line)
-3. SECTION HEADERS: ALL CAPS, left-aligned, followed by a horizontal line (e.g., "EXPERIENCE" then underline)
-4. EXPERIENCE SECTION:
-   - Format: Job Title | Company Name | Location
-   - Dates: Right-aligned (e.g., "MM/YYYY - MM/YYYY" or "MM/YYYY - Present")
-   - STRICTLY 3-4 bullet points per role max, each starting with "•"
-   - Use strong action verbs (Led, Developed, Implemented, Achieved, etc.)
-   - Include quantifiable metrics (percentages, dollar amounts, team sizes, etc.)
-5. EDUCATION SECTION:
-   - Extract from base resume.
-   - Format: Degree Name, Major | University Name | Location
-   - Dates: Right-aligned
-6. LICENSES & CERTIFICATIONS SECTION:
-   - Extract from base resume (if any).
-   - Format: Certification Name
-   - Issuing Organization
-7. SKILLS SECTION:
-   - Group by category: Technical Skills, Software/Tools, Certifications
-   - Use commas to separate items within categories
-   - Prioritize skills mentioned in job description
-8. SPACING: Single line break between sections, double line break before major sections
-9. NO markdown formatting (no **bold**, no _italic_, no # headers)
-10. Use consistent date format throughout
+3. SECTION HEADERS: ALL CAPS, left-aligned, EXACTLY matching the names in Rule 0, followed by a horizontal line (e.g., "EXPERIENCE" then underline)
+4. SUMMARY SECTION: Heading "SUMMARY" followed by a 2-3 sentence highly targeted professional summary.
+5. EDUCATION SECTION: Heading "EDUCATION". Format: Degree Name, Major | University Name | Location [Date right-aligned]. Include relevant modules/coursework on the next line if available in the <resume_text>.
+6. EXPERIENCE SECTION: Heading "EXPERIENCE". Format: Job Title | Company Name | Location [Date right-aligned]. STRICTLY 3-4 bullet points per role max, each starting with "•".
+7. LICENSES & CERTIFICATIONS SECTION: Heading "LICENSES & CERTIFICATIONS". Format: Certification Name on line 1, Issuing Organization on line 2.
+8. SKILLS SECTION: Heading "SKILLS". Group by category (e.g., Technical Skills, Software/Tools). Use commas to separate items.
+9. SPACING: Single line break between sections.
+10. NO markdown formatting (no **bold**, no _italic_, no # headers).
 </formatting_rules>
 
 Now rewrite the resume tracking all constraints strictly.
@@ -206,30 +193,17 @@ ${jobDescription}
 </ats_optimization_requirements>
 
 <formatting_rules>
+0. STRUCTURE: You MUST output the sections in this EXACT ORDER: "SUMMARY", "EDUCATION", "EXPERIENCE", "LICENSES & CERTIFICATIONS", "SKILLS".
 1. CANDIDATE NAME: Centered, full name only (no titles)
 2. CONTACT INFORMATION: Centered below name, format as: Email | Phone | LinkedIn | Location (one line)
-3. SECTION HEADERS: ALL CAPS, left-aligned, followed by a horizontal line (e.g., "EXPERIENCE" then underline)
-4. EXPERIENCE SECTION:
-   - Format: Job Title | Company Name | Location
-   - Dates: Right-aligned (e.g., "MM/YYYY - MM/YYYY" or "MM/YYYY - Present")
-   - STRICTLY 3-4 bullet points per role max, each starting with "•"
-   - Use strong action verbs (Led, Developed, Implemented, Achieved, etc.)
-   - Include quantifiable metrics (percentages, dollar amounts, team sizes, etc.)
-5. EDUCATION SECTION:
-   - Extract from base resume.
-   - Format: Degree Name, Major | University Name | Location
-   - Dates: Right-aligned
-6. LICENSES & CERTIFICATIONS SECTION:
-   - Extract from base resume (if any).
-   - Format: Certification Name
-   - Issuing Organization
-7. SKILLS SECTION:
-   - Group by category: Technical Skills, Software/Tools, Certifications
-   - Use commas to separate items within categories
-   - Prioritize skills mentioned in job description
-8. SPACING: Single line break between sections, double line break before major sections
-9. NO markdown formatting (no **bold**, no _italic_, no # headers)
-10. Use consistent date format throughout
+3. SECTION HEADERS: ALL CAPS, left-aligned, EXACTLY matching the names in Rule 0, followed by a horizontal line (e.g., "EXPERIENCE" then underline)
+4. SUMMARY SECTION: Heading "SUMMARY" followed by a 2-3 sentence highly targeted professional summary.
+5. EDUCATION SECTION: Heading "EDUCATION". Format: Degree Name, Major | University Name | Location [Date right-aligned]. Include relevant modules/coursework on the next line if available in the <resume_text>.
+6. EXPERIENCE SECTION: Heading "EXPERIENCE". Format: Job Title | Company Name | Location [Date right-aligned]. STRICTLY 3-4 bullet points per role max, each starting with "•".
+7. LICENSES & CERTIFICATIONS SECTION: Heading "LICENSES & CERTIFICATIONS". Format: Certification Name on line 1, Issuing Organization on line 2.
+8. SKILLS SECTION: Heading "SKILLS". Group by category (e.g., Technical Skills, Software/Tools). Use commas to separate items.
+9. SPACING: Single line break between sections.
+10. NO markdown formatting (no **bold**, no _italic_, no # headers).
 </formatting_rules>
 
 Now rewrite the resume tracking all constraints strictly.

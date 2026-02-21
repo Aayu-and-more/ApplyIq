@@ -53,9 +53,57 @@ export function generateAtsResumePdf(claudeOutput, candidateName = "AAYUSH MORE"
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // EDUCATION
+    // ═══════════════════════════════════════════════════════════════════════
+    if (parsed.education && parsed.education.length > 0) {
+      if (y > pageHeight - 30) {
+        doc.addPage();
+        y = margin;
+      }
+
+      y = addSection(doc, "EDUCATION", y, margin, contentWidth);
+      doc.setFontSize(10);
+
+      parsed.education.forEach((edu) => {
+        // Degree, Major | University | Location
+        doc.setFont("helvetica", "bold");
+        const titleText = doc.splitTextToSize(edu.title, contentWidth - 40);
+        doc.text(titleText, margin, y);
+
+        // Date Right Aligned
+        if (edu.date) {
+          doc.setFont("helvetica", "normal");
+          doc.text(edu.date, pageWidth - margin, y, { align: "right" });
+        }
+
+        y += (titleText.length * 4.5);
+
+        // Details (e.g. GPA, Honors, Modules)
+        if (edu.details && edu.details.length > 0) {
+          doc.setFontSize(9.5);
+          doc.setFont("helvetica", "normal");
+          edu.details.forEach(detail => {
+            const detailLines = doc.splitTextToSize(detail, contentWidth);
+            detailLines.forEach(line => {
+              doc.text(line, margin, y);
+              y += 4.5;
+            });
+          });
+        }
+        y += 2;
+      });
+      y += 1;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // EXPERIENCE
     // ═══════════════════════════════════════════════════════════════════════
     if (parsed.experience && parsed.experience.length > 0) {
+      if (y > pageHeight - 30) {
+        doc.addPage();
+        y = margin;
+      }
+
       y = addSection(doc, "EXPERIENCE", y, margin, contentWidth);
 
       parsed.experience.forEach((job, idx) => {
@@ -68,16 +116,16 @@ export function generateAtsResumePdf(claudeOutput, candidateName = "AAYUSH MORE"
         // Job title and company (bold)
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-        doc.text(job.title, margin, y);
-        y += 5;
+        const titleLines = doc.splitTextToSize(job.title, contentWidth - 40);
+        doc.text(titleLines, margin, y);
 
-        // Date (if available, aligned left below title to match PDF)
+        // Date Right Aligned on the first line
         if (job.date) {
-          doc.setFontSize(9);
-          doc.setFont("helvetica", "italic");
-          doc.text(job.date, margin, y);
-          y += 5;
+          doc.setFontSize(9.5);
+          doc.setFont("helvetica", "normal");
+          doc.text(job.date, pageWidth - margin, y, { align: "right" });
         }
+        y += (titleLines.length * 5); // Add space base on lines
 
         // Bullets
         doc.setFontSize(9.5);
@@ -104,49 +152,6 @@ export function generateAtsResumePdf(claudeOutput, candidateName = "AAYUSH MORE"
       });
 
       y += 2;
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // EDUCATION
-    // ═══════════════════════════════════════════════════════════════════════
-    if (parsed.education && parsed.education.length > 0) {
-      if (y > pageHeight - 30) {
-        doc.addPage();
-        y = margin;
-      }
-
-      y = addSection(doc, "EDUCATION", y, margin, contentWidth);
-      doc.setFontSize(10);
-
-      parsed.education.forEach((edu) => {
-        // Degree, Major | University | Location
-        doc.setFont("helvetica", "bold");
-        const titleText = doc.splitTextToSize(edu.title, contentWidth - 40);
-        doc.text(titleText, margin, y);
-
-        // Date Right Aligned
-        if (edu.date) {
-          doc.setFont("helvetica", "normal");
-          doc.text(edu.date, pageWidth - margin, y, { align: "right" });
-        }
-
-        y += (titleText.length * 4.5);
-
-        // Details (e.g. GPA, Honors)
-        if (edu.details && edu.details.length > 0) {
-          doc.setFontSize(9.5);
-          doc.setFont("helvetica", "normal");
-          edu.details.forEach(detail => {
-            const detailLines = doc.splitTextToSize(detail, contentWidth);
-            detailLines.forEach(line => {
-              doc.text(line, margin, y);
-              y += 4.5;
-            });
-          });
-        }
-        y += 2;
-      });
-      y += 1;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -259,9 +264,9 @@ function parseClaudeOutput(output) {
     const text = output || "";
 
     // --- 1. Extract Summary ---
-    // Look for anything before EXPERIENCE or EDUCATION
+    // Look for anything before the other sections
     const expIndex = text.search(/\bEXPERIENCE\b/i);
-    const summaryMatch = text.match(/(?:SUMMARY|PROFESSIONAL SUMMARY|OPTIMISED PROFESSIONAL SUMMARY)?\s*_{0,}\s*([\s\S]*?)(?=\bEXPERIENCE\b|\bEDUCATION\b|$)/i);
+    const summaryMatch = text.match(/(?:SUMMARY|PROFESSIONAL SUMMARY|OPTIMISED PROFESSIONAL SUMMARY)\s*_{0,}\s*([\s\S]*?)(?=\b(?:EXPERIENCE|EDUCATION|LICENSES & CERTIFICATIONS|CERTIFICATIONS|SKILLS)\b|$)/i);
 
     if (summaryMatch && summaryMatch[1]) {
       // Clean up lines like "[Full Name]" or "[Email] | ..." that might be caught at the top
@@ -302,8 +307,8 @@ function parseClaudeOutput(output) {
     }
 
     // --- 3. Extract Experience ---
-    // Extract everything between EXPERIENCE and EDUCATION or SKILLS
-    const expSectionMatch = text.match(/\bEXPERIENCE\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\bEDUCATION\b|\bSKILLS\b|$)/i);
+    // Extract everything between EXPERIENCE and the next section
+    const expSectionMatch = text.match(/\bEXPERIENCE\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\b(?:EDUCATION|LICENSES & CERTIFICATIONS|CERTIFICATIONS|SKILLS|SUMMARY)\b|$)/i);
 
     if (expSectionMatch && expSectionMatch[1]) {
       const expLines = expSectionMatch[1].split('\n').map(l => l.trim()).filter(Boolean);
@@ -355,7 +360,7 @@ function parseClaudeOutput(output) {
     }
 
     // --- 4. Extract Education ---
-    const eduSectionMatch = text.match(/\bEDUCATION\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\bLICENSES & CERTIFICATIONS\b|\bSKILLS\b|\bEXPERIENCE\b|$)/i);
+    const eduSectionMatch = text.match(/\bEDUCATION\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\b(?:EXPERIENCE|LICENSES & CERTIFICATIONS|CERTIFICATIONS|SKILLS|SUMMARY)\b|$)/i);
     if (eduSectionMatch && eduSectionMatch[1]) {
       const eduLines = eduSectionMatch[1].split('\n').map(l => l.trim()).filter(Boolean);
       let currentEdu = null;
@@ -392,7 +397,7 @@ function parseClaudeOutput(output) {
     }
 
     // --- 5. Extract Certifications ---
-    const certSectionMatch = text.match(/\b(?:LICENSES & CERTIFICATIONS|CERTIFICATIONS)\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\bSKILLS\b|\bEDUCATION\b|$)/i);
+    const certSectionMatch = text.match(/\b(?:LICENSES & CERTIFICATIONS|CERTIFICATIONS)\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\b(?:SKILLS|EDUCATION|EXPERIENCE|SUMMARY)\b|$)/i);
     if (certSectionMatch && certSectionMatch[1]) {
       const certLines = certSectionMatch[1].split('\n').map(l => l.trim().replace(/\*\*/g, '')).filter(Boolean);
       let currentCert = null;
