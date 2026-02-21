@@ -1,45 +1,7 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
-// Polyfill DOMMatrix for Node.js environment (needed by pdf-parse v2)
-if (typeof global !== 'undefined' && typeof global.DOMMatrix === 'undefined') {
-  global.DOMMatrix = class DOMMatrix {
-    constructor(init) {
-      if (init && init.length === 6) {
-        this.a = init[0]; this.b = init[1]; this.c = init[2];
-        this.d = init[3]; this.e = init[4]; this.f = init[5];
-      } else {
-        this.a = 1; this.b = 0; this.c = 0;
-        this.d = 1; this.e = 0; this.f = 0;
-      }
-    }
-  };
-}
-
-// Lazy-load pdf-parse to avoid module initialization errors
-// pdf-parse v2.4.5 exports PDFParse as a class, not a function
-function getPdfParseClass() {
-  try {
-    const pdfLib = require('pdf-parse');
-
-    // pdf-parse v2 exports PDFParse as a named export (class)
-    if (pdfLib?.PDFParse && typeof pdfLib.PDFParse === 'function') {
-      return pdfLib.PDFParse;
-    }
-
-    // Fallback: check for default export (for older versions or different builds)
-    if (typeof pdfLib === 'function') {
-      return pdfLib;
-    } else if (pdfLib?.default && typeof pdfLib.default === 'function') {
-      return pdfLib.default;
-    }
-
-    throw new Error(`PDFParse class not found. Available keys: ${Object.keys(pdfLib || {}).join(', ')}`);
-  } catch (err) {
-    console.error('Failed to load pdf-parse:', err.message);
-    throw new Error(`PDF library initialization failed: ${err.message}`);
-  }
-}
+const pdfParse = require('pdf-parse');
 
 export default async function handler(req, res) {
   // Block anything that isn't a POST request
@@ -86,15 +48,8 @@ export default async function handler(req, res) {
 
     console.log(`Processing PDF buffer (${pdfBuffer.length} bytes)...`);
 
-    // Get PDFParse class (lazy-loaded)
-    const PDFParse = getPdfParseClass();
-    if (typeof PDFParse !== 'function') {
-      throw new Error('PDFParse class not found');
-    }
-
-    // Parse PDF using v2 API: new PDFParse({ data: buffer })
-    const parser = new PDFParse({ data: pdfBuffer });
-    const pdfData = await parser.getText();
+    // Parse PDF using standard pdf-parse 1.1.1
+    const pdfData = await pdfParse(pdfBuffer);
 
     if (!pdfData || !pdfData.text) {
       throw new Error('PDF parsing failed: no text extracted');
@@ -113,8 +68,7 @@ export default async function handler(req, res) {
 
     console.log(`PDF parsed successfully. Extracted ${cleanResumeText.length} characters.`);
 
-    // Clean up parser instance
-    await parser.destroy();
+
 
     // Send to Claude 3 Haiku API
     const response = await fetch("https://api.anthropic.com/v1/messages", {
