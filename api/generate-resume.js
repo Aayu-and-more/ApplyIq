@@ -87,10 +87,11 @@ export default async function handler(req, res) {
             type: "text",
             text: `You are an expert ATS (Applicant Tracking System) resume optimizer specializing in Harvard-style resume formatting. Your task is to rewrite the provided resume to maximize ATS compatibility while maintaining professional Harvard-style formatting.
 
-CRITICAL CONSTRAINTS - YOU MUST FOLLOW THESE:
+CRITICAL CONSTRAINTS - YOU MUST FOLLOW THESE OR YOU WILL BE PENALIZED:
 1. STRICT LENGTH LIMIT: The output MUST fit on a single page. Be extremely concise.
 2. BULLET LIMIT: Each experience role MUST HAVE A MAXIMUM OF 3-4 BULLET POINTS. Only include the absolute most impressive, quantifiable achievements relevant to the job description. Do not include basic responsibilities.
-3. DYNAMIC CONTENT: DO NOT invent or assume any information. Extract ALL Education, Certifications, and Experience exclusively from the provided RESUME TEXT.
+3. NO HALLUCINATIONS: DO NOT invent, assume, or hallucinate ANY information. You MUST extract ALL Names, Contact Info, Education, Certifications, Companies, Dates, and Experience exclusively from the provided \`RESUME TEXT\`.
+4. NO PLACEHOLDERS: Do not formulate a "John Doe" resume. Use the EXACT name and details of the candidate from the \`RESUME TEXT\`.
 
 ATS OPTIMIZATION REQUIREMENTS:
 1. Extract keywords from the job description and naturally integrate them.
@@ -122,46 +123,6 @@ HARVARD-STYLE FORMATTING RULES:
 8. SPACING: Single line break between sections, double line break before major sections
 9. NO markdown formatting (no **bold**, no _italic_, no # headers)
 10. Use consistent date format throughout
-
-OUTPUT FORMAT EXAMPLE:
-[Full Name]
-[Email] | [Phone] | [LinkedIn] | [City, State]
-
-SUMMARY
-________________________________________________________________________________
-
-[2-3 sentence highly targeted professional summary focusing on the exact value brought to the target role.]
-
-EXPERIENCE
-________________________________________________________________________________
-
-[Job Title] | [Company Name] | [City, State]                                    [MM/YYYY - MM/YYYY]
-• [Achievement-focused bullet 1]
-• [Achievement-focused bullet 2]
-• [Achievement-focused bullet 3]
-
-[Previous Job Title] | [Company Name] | [City, State]                            [MM/YYYY - MM/YYYY]
-• [Achievement bullet 1]
-• [Achievement bullet 2]
-• [Achievement bullet 3]
-
-EDUCATION
-________________________________________________________________________________
-
-[Degree], [Major] | [University Name] | [City, State]                           [MM/YYYY]
-[Relevant coursework or honors if applicable]
-
-LICENSES & CERTIFICATIONS
-________________________________________________________________________________
-
-[Certification Name]
-[Issuing Organization]
-
-SKILLS
-________________________________________________________________________________
-
-Technical Skills: [Keyword 1], [Keyword 2]
-Software/Tools: [Tool 1], [Tool 2]
 
 Now rewrite the resume below following these exact formatting rules and ATS optimization requirements:
 
@@ -224,10 +185,11 @@ JOB DESCRIPTION:
                 type: "text",
                 text: `You are an expert ATS (Applicant Tracking System) resume optimizer specializing in Harvard-style resume formatting. Your task is to rewrite the provided resume to maximize ATS compatibility while maintaining professional Harvard-style formatting.
 
-CRITICAL CONSTRAINTS - YOU MUST FOLLOW THESE:
+CRITICAL CONSTRAINTS - YOU MUST FOLLOW THESE OR YOU WILL BE PENALIZED:
 1. STRICT LENGTH LIMIT: The output MUST fit on a single page. Be extremely concise.
 2. BULLET LIMIT: Each experience role MUST HAVE A MAXIMUM OF 3-4 BULLET POINTS. Only include the absolute most impressive, quantifiable achievements relevant to the job description. Do not include basic responsibilities.
-3. DYNAMIC CONTENT: DO NOT invent or assume any information. Extract ALL Education, Certifications, and Experience exclusively from the provided RESUME TEXT.
+3. NO HALLUCINATIONS: DO NOT invent, assume, or hallucinate ANY information. You MUST extract ALL Names, Contact Info, Education, Certifications, Companies, Dates, and Experience exclusively from the provided \`RESUME TEXT\`.
+4. NO PLACEHOLDERS: Do not formulate a "John Doe" resume. Use the EXACT name and details of the candidate from the \`RESUME TEXT\`.
 
 ATS OPTIMIZATION REQUIREMENTS:
 1. Extract keywords from the job description and naturally integrate them.
@@ -259,46 +221,6 @@ HARVARD-STYLE FORMATTING RULES:
 8. SPACING: Single line break between sections, double line break before major sections
 9. NO markdown formatting (no **bold**, no _italic_, no # headers)
 10. Use consistent date format throughout
-
-OUTPUT FORMAT EXAMPLE:
-[Full Name]
-[Email] | [Phone] | [LinkedIn] | [City, State]
-
-SUMMARY
-________________________________________________________________________________
-
-[2-3 sentence highly targeted professional summary focusing on the exact value brought to the target role.]
-
-EXPERIENCE
-________________________________________________________________________________
-
-[Job Title] | [Company Name] | [City, State]                                    [MM/YYYY - MM/YYYY]
-• [Achievement-focused bullet 1]
-• [Achievement-focused bullet 2]
-• [Achievement-focused bullet 3]
-
-[Previous Job Title] | [Company Name] | [City, State]                            [MM/YYYY - MM/YYYY]
-• [Achievement bullet 1]
-• [Achievement bullet 2]
-• [Achievement bullet 3]
-
-EDUCATION
-________________________________________________________________________________
-
-[Degree], [Major] | [University Name] | [City, State]                           [MM/YYYY]
-[Relevant coursework or honors if applicable]
-
-LICENSES & CERTIFICATIONS
-________________________________________________________________________________
-
-[Certification Name]
-[Issuing Organization]
-
-SKILLS
-________________________________________________________________________________
-
-Technical Skills: [Keyword 1], [Keyword 2]
-Software/Tools: [Tool 1], [Tool 2]
 
 Now rewrite the resume below following these exact formatting rules and ATS optimization requirements:
 
