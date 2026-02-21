@@ -197,16 +197,38 @@ export function generateAtsResumePdf(claudeOutput, candidateName = "AAYUSH MORE"
 
       y = addSection(doc, "SKILLS", y, margin, contentWidth);
       doc.setFontSize(9.5);
-      doc.setFont("helvetica", "normal");
 
-      const skillsText = parsed.skills.join("   •   ");
-      const skillsLines = doc.splitTextToSize(skillsText, contentWidth);
-      skillsLines.forEach(line => {
+      parsed.skills.forEach(skillGroup => {
         if (y > pageHeight - 15) {
           doc.addPage();
           y = margin;
         }
-        doc.text(line, margin, y);
+
+        if (skillGroup.category !== 'Other') {
+          doc.setFont("helvetica", "bold");
+          doc.text(skillGroup.category + ": ", margin, y);
+          const catWidth = doc.getTextWidth(skillGroup.category + ": ");
+          doc.setFont("helvetica", "normal");
+
+          const skillsText = skillGroup.items.join(", ");
+          const skillsLines = doc.splitTextToSize(skillsText, contentWidth - catWidth - 2);
+          skillsLines.forEach((line, i) => {
+            if (i === 0) {
+              doc.text(line, margin + catWidth, y);
+            } else {
+              y += 4.5;
+              doc.text(line, margin + catWidth, y);
+            }
+          });
+        } else {
+          doc.setFont("helvetica", "normal");
+          const skillsText = skillGroup.items.join("   •   ");
+          const skillsLines = doc.splitTextToSize(skillsText, contentWidth);
+          skillsLines.forEach((line, i) => {
+            if (i > 0) y += 4.5;
+            doc.text(line, margin, y);
+          });
+        }
         y += 4.5;
       });
     }
@@ -292,34 +314,32 @@ function parseClaudeOutput(output) {
           sections.experience[sections.experience.length - 1].bullets.push(cleanLine);
         } else {
           let dateStr = "";
-          const dateRegex = /(?:\[|\b| )((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2})\/?\s*[0-9]{4}\s*[-–]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2}\/?\s*[0-9]{4}|Present)|[0-9]{4})(?:\s*\])?$/i;
-          const dMatch = line.match(dateRegex);
-          if (dMatch) {
-            dateStr = dMatch[1].trim();
-            line = line.replace(dMatch[0], '').trim();
+          const parts = line.split('|');
+          if (parts.length > 1) {
+            dateStr = parts.pop().trim();
+            line = parts.join(', ').trim();
           }
 
           // Multi-line title check
           if (sections.experience.length > 0 && sections.experience[sections.experience.length - 1].bullets.length === 0 && !line.includes('|')) {
-            sections.experience[sections.experience.length - 1].title += ", " + line.replace(/\|/g, ',').trim();
+            sections.experience[sections.experience.length - 1].title += ", " + line;
             if (!sections.experience[sections.experience.length - 1].date && dateStr) {
               sections.experience[sections.experience.length - 1].date = dateStr;
             }
           } else {
-            sections.experience.push({ title: line.replace(/\|/g, ',').trim(), date: dateStr, bullets: [] });
+            sections.experience.push({ title: line, date: dateStr, bullets: [] });
           }
         }
       }
       else if (currentSection === 'EDUCATION') {
         if (line.includes('|') || (sections.education.length === 0 && !isBullet)) {
           let dateStr = "";
-          const dateRegex = /(?:\[|\b| )((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2})\/?\s*[0-9]{4}\s*[-–]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2}\/?\s*[0-9]{4}|Present)|[0-9]{4})(?:\s*\])?$/i;
-          const dMatch = line.match(dateRegex);
-          if (dMatch) {
-            dateStr = dMatch[1].trim();
-            line = line.replace(dMatch[0], '').trim();
+          const parts = line.split('|');
+          if (parts.length > 1) {
+            dateStr = parts.pop().trim();
+            line = parts.join(', ').trim();
           }
-          sections.education.push({ title: line.replace(/\|/g, ',').trim(), date: dateStr, details: [] });
+          sections.education.push({ title: line, date: dateStr, details: [] });
         } else if (sections.education.length > 0) {
           sections.education[sections.education.length - 1].details.push(cleanLine);
         } else {
@@ -340,16 +360,20 @@ function parseClaudeOutput(output) {
       }
       else if (currentSection === 'SKILLS') {
         if (line.includes(':')) {
-          const parts = line.split(':')[1].split(',');
-          parts.forEach(p => sections.skills.push(p.trim()));
+          const splitPoint = line.indexOf(':');
+          const category = line.substring(0, splitPoint).replace(/[*_]/g, '').trim();
+          const items = line.substring(splitPoint + 1).split(',').map(p => p.trim()).filter(Boolean);
+          sections.skills.push({ category, items });
         } else {
-          const parts = cleanLine.split(/[,\•\|]/);
-          parts.forEach(p => sections.skills.push(p.trim()));
+          const items = cleanLine.split(/[,\•\|]/).map(p => p.trim()).filter(Boolean);
+          if (sections.skills.length > 0 && sections.skills[sections.skills.length - 1].category === 'Other') {
+            sections.skills[sections.skills.length - 1].items.push(...items);
+          } else {
+            sections.skills.push({ category: 'Other', items });
+          }
         }
       }
     }
-
-    sections.skills = sections.skills.filter(Boolean).map(s => s.trim()).slice(0, 18);
 
     if (!sections.summary && sections.experience.length === 0 && sections.education.length === 0) {
       sections.summary = "ATS formatting parsed incorrectly. Showing raw output:\n\n" + text.substring(0, 400) + "...";
