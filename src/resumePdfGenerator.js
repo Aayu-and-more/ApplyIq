@@ -235,13 +235,6 @@ export function generateAtsResumePdf(claudeOutput, candidateName = "AAYUSH MORE"
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // FOOTER
-    // ═══════════════════════════════════════════════════════════════════════
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "italic");
-    doc.text(`${candidateName} - page 1 of 1`, pageWidth / 2, pageHeight - 10, { align: "center" });
-
-    // ═══════════════════════════════════════════════════════════════════════
     // SAVE
     // ═══════════════════════════════════════════════════════════════════════
     const filename = `Resume_${candidateName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
@@ -317,9 +310,13 @@ function parseClaudeOutput(output) {
           let dateStr = "";
           const parts = line.split('|');
           if (parts.length > 1) {
-            dateStr = parts.pop().trim();
-            line = parts.join(', ').trim();
+            const lastPart = parts[parts.length - 1].trim();
+            if (/\d{4}/.test(lastPart) || lastPart.toLowerCase().includes('present')) {
+              dateStr = parts.pop().trim();
+            }
+            line = parts.join(' | ').trim();
           }
+          line = line.replace(/\|/g, ',').replace(/\s+/g, ' ').trim();
 
           // Multi-line title check
           if (sections.experience.length > 0 && sections.experience[sections.experience.length - 1].bullets.length === 0 && !line.includes('|')) {
@@ -337,9 +334,13 @@ function parseClaudeOutput(output) {
           let dateStr = "";
           const parts = line.split('|');
           if (parts.length > 1) {
-            dateStr = parts.pop().trim();
-            line = parts.join(', ').trim();
+            const lastPart = parts[parts.length - 1].trim();
+            if (/\d{4}/.test(lastPart) || lastPart.toLowerCase().includes('present')) {
+              dateStr = parts.pop().trim();
+            }
+            line = parts.join(' | ').trim();
           }
+          line = line.replace(/\|/g, ',').replace(/\s+/g, ' ').trim();
           sections.education.push({ title: line, date: dateStr, details: [] });
         } else if (sections.education.length > 0) {
           sections.education[sections.education.length - 1].details.push(cleanLine);
