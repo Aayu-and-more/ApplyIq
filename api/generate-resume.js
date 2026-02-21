@@ -93,6 +93,8 @@ export default async function handler(req, res) {
 3. NO HALLUCINATIONS: DO NOT invent, assume, or hallucinate ANY information. You MUST extract ALL Names, Contact Info, Education, Certifications, Companies, Dates, and Experience EXCLUSIVELY from the <resume_text> provided below.
 4. NO PLACEHOLDERS: Do not formulate a "John Doe" or "Samantha Jones" resume. Use the EXACT name and details of the candidate from the <resume_text>. If the <resume_text> says "Aayush More", you MUST use "Aayush More".
 5. NO EXTRA TEXT: Do not output conversational filler like "Here is the optimized resume:". Output ONLY the resume content itself.
+6. STRICT ROLE RETENTION: You MUST keep the EXACT Company Names, Job Titles, Locations, and Dates from the <resume_text>. DO NOT modify them, DO NOT remove them, and DO NOT add fake roles (e.g. do not invent an "Intern" role).
+7. ONLY OPTIMIZE BULLETS: For the EXPERIENCE section, ONLY optimize the bullet points for ATS compliance. Leave all headers and titles exactly as they were provided in the <resume_text>.
 </critical_constraints>
 
 <ats_optimization_requirements>
@@ -184,6 +186,8 @@ ${jobDescription}
 3. NO HALLUCINATIONS: DO NOT invent, assume, or hallucinate ANY information. You MUST extract ALL Names, Contact Info, Education, Certifications, Companies, Dates, and Experience EXCLUSIVELY from the <resume_text> provided below.
 4. NO PLACEHOLDERS: Do not formulate a "John Doe" or "Samantha Jones" resume. Use the EXACT name and details of the candidate from the <resume_text>. If the <resume_text> says "Aayush More", you MUST use "Aayush More".
 5. NO EXTRA TEXT: Do not output conversational filler like "Here is the optimized resume:". Output ONLY the resume content itself.
+6. STRICT ROLE RETENTION: You MUST keep the EXACT Company Names, Job Titles, Locations, and Dates from the <resume_text>. DO NOT modify them, DO NOT remove them, and DO NOT add fake roles (e.g. do not invent an "Intern" role).
+7. ONLY OPTIMIZE BULLETS: For the EXPERIENCE section, ONLY optimize the bullet points for ATS compliance. Leave all headers and titles exactly as they were provided in the <resume_text>.
 </critical_constraints>
 
 <ats_optimization_requirements>
