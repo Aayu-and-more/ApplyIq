@@ -1,217 +1,281 @@
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 
-export const generateAtsResumePdf = (content, filename = "resume") => {
-  if (!content) {
-    console.error("No content provided to PDF generator");
-    return;
-  }
+/**
+ * Generates a professional resume PDF matching Aayush More's format
+ * Uses Claude's ATS analysis to populate an industry-standard resume template
+ */
 
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "pt",
-    format: "a4",
-  });
+export function generateAtsResumePdf(claudeOutput, candidateName = "AAYUSH MORE") {
+  try {
+    const doc = new jsPDF();
 
-  const margin = 54;
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const maxLineWidth = pageWidth - margin * 2;
+    // Page settings
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
+    let y = margin;
 
-  // Sizes and spacing – match app readability
-  const bodySize = 11;
-  const nameSize = 20;
-  const sectionSize = 12;
-  const lineHeight = 13;
-  const bulletIndent = 18;
-  const sectionTopGap = 20;
-  const sectionBottomGap = 10;
-  const blockGap = 8; // between role and bullets
+    // Parse Claude's output to extract structured sections
+    const parsed = parseClaudeOutput(claudeOutput);
 
-  const lines = content.split("\n").map((l) => l.trim()).filter(Boolean);
-  let cursorY = margin;
-  let isFirstLine = true;
-  let contactRendered = false;
+    // ═══════════════════════════════════════════════════════════════════════
+    // HEADER - Name and Contact
+    // ═══════════════════════════════════════════════════════════════════════
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(candidateName, pageWidth / 2, y, { align: "center" });
+    y += 6;
 
-  const drawLine = (y, thick = 0.5) => {
-    doc.setLineWidth(thick);
-    doc.line(margin, y, pageWidth - margin, y);
-  };
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    const contact = "moreaayush2@gmail.com  •  Dublin, Ireland  •  https://www.linkedin.com/in/aayush-more-/";
+    doc.text(contact, pageWidth / 2, y, { align: "center" });
+    y += 10;
 
-  const isSectionHeader = (line) => {
-    if (line.startsWith("•") || line.includes("|")) return false;
-    const u = line.toUpperCase();
-    return line === u && line.length > 2 && line.length < 50;
-  };
-
-  const isDateOnlyLine = (line) => {
-    const t = line.trim();
-    return /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s*[-–—]\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)?\s*\d{4}$/i.test(t) ||
-      /^\d{4}\s*[-–—]\s*\d{4}$/.test(t) || /^Present$/i.test(t);
-  };
-
-  // Match "(April 2025 - Present)" or "(MM/YYYY - MM/YYYY)" at end of line
-  const extractDateFromParens = (line) => {
-    const m = line.match(/\s*\(([^)]+)\)\s*$/);
-    return m ? { date: m[1].trim(), rest: line.slice(0, m.index).trim() } : null;
-  };
-
-  const checkPageBreak = (need) => {
-    if (cursorY + need > pageHeight - margin) {
-      doc.addPage();
-      cursorY = margin;
-    }
-  };
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    checkPageBreak(lineHeight * 3);
-
-    // —— 1. Name (first line)
-    if (isFirstLine && !line.startsWith("•") && line.length < 70 && !line.includes("@")) {
-      doc.setFontSize(nameSize);
-      doc.setFont("helvetica", "bold");
-      doc.text(line.toUpperCase(), pageWidth / 2, cursorY, { align: "center" });
-      cursorY += lineHeight + 8;
-      isFirstLine = false;
-      continue;
-    }
-
-    // —— 2. Contact (once): email | phone | linkedin | location
-    if (
-      !contactRendered &&
-      (line.includes("@") || line.includes("linkedin") || line.includes("http")) &&
-      !line.startsWith("•") &&
-      (line.includes("|") || line.includes("•"))
-    ) {
-      contactRendered = true;
-      doc.setFontSize(bodySize);
+    // ═══════════════════════════════════════════════════════════════════════
+    // SUMMARY
+    // ═══════════════════════════════════════════════════════════════════════
+    if (parsed.summary) {
+      y = addSection(doc, "SUMMARY", y, margin, contentWidth);
+      doc.setFontSize(9.5);
       doc.setFont("helvetica", "normal");
-      const contact = line.replace(/\|/g, "  |  ");
-      doc.text(contact, pageWidth / 2, cursorY, { align: "center" });
-      cursorY += lineHeight + 14;
-      drawLine(cursorY, 0.7);
-      cursorY += sectionBottomGap + 6;
-      continue;
+      const summaryLines = doc.splitTextToSize(parsed.summary, contentWidth);
+      summaryLines.forEach(line => {
+        if (y > pageHeight - 20) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(line, margin, y);
+        y += 4.5;
+      });
+      y += 3;
     }
 
-    // —— 3. Section header (e.g. EXPERIENCE, EDUCATION)
-    if (isSectionHeader(line)) {
-      if (cursorY > margin + lineHeight) cursorY += sectionTopGap;
-      checkPageBreak(lineHeight * 4);
+    // ═══════════════════════════════════════════════════════════════════════
+    // EXPERIENCE
+    // ═══════════════════════════════════════════════════════════════════════
+    if (parsed.experience && parsed.experience.length > 0) {
+      y = addSection(doc, "EXPERIENCE", y, margin, contentWidth);
 
-      doc.setFontSize(sectionSize);
-      doc.setFont("helvetica", "bold");
-      doc.text(line, margin, cursorY);
-      cursorY += lineHeight + 6;
-      drawLine(cursorY);
-      cursorY += lineHeight + sectionBottomGap;
-      continue;
-    }
+      parsed.experience.forEach((job, idx) => {
+        // Check page break
+        if (y > pageHeight - 40) {
+          doc.addPage();
+          y = margin;
+        }
 
-    // —— 4. Underscore-only line
-    if (/^_+$/.test(line)) {
-      drawLine(cursorY);
-      cursorY += lineHeight;
-      continue;
-    }
+        // Job title and company (bold)
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text(job.title, margin, y);
+        y += 5;
 
-    // —— 5. Bullet
-    if (line.startsWith("•")) {
-      doc.setFontSize(bodySize);
-      doc.setFont("helvetica", "normal");
-      const text = line.slice(1).trim();
-      const wrapped = doc.splitTextToSize(text, maxLineWidth - bulletIndent);
-      for (const w of wrapped) {
-        checkPageBreak(lineHeight);
-        doc.text(w, margin + bulletIndent, cursorY);
-        cursorY += lineHeight;
-      }
-      continue;
-    }
+        // Date (if available, aligned left below title to match PDF)
+        if (job.date) {
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "italic");
+          doc.text(job.date, margin, y);
+          y += 5;
+        }
 
-    // —— 6. Standalone date line (right-aligned when previous was a role line)
-    if (isDateOnlyLine(line)) {
-      doc.setFontSize(bodySize);
-      doc.setFont("helvetica", "normal");
-      doc.text(line, pageWidth - margin - doc.getTextWidth(line), cursorY);
-      cursorY += lineHeight + blockGap;
-      continue;
-    }
-
-    // —— 7. Role line: "Title | Company | Location" or "Title | Company | Location (Date)"
-    if (line.includes("|") && !line.includes("@")) {
-      const withDate = extractDateFromParens(line);
-      const leftText = withDate ? withDate.rest : line;
-      const parts = leftText.split("|").map((p) => p.trim()).filter(Boolean);
-
-      doc.setFontSize(bodySize);
-      doc.setFont("helvetica", "bold");
-
-      if (withDate && withDate.date) {
-        // Same line has (Date) – left: role, right: date
-        const roleText = parts.join(" | ");
-        const dateW = doc.getTextWidth(withDate.date);
-        doc.text(roleText, margin, cursorY);
+        // Bullets
+        doc.setFontSize(9.5);
         doc.setFont("helvetica", "normal");
-        doc.text(withDate.date, pageWidth - margin - dateW, cursorY);
-      } else if (parts.length >= 2) {
-        const last = parts[parts.length - 1];
-        const looksLikeDate = /\d{4}|Present/i.test(last) && last.length < 25;
-        if (looksLikeDate) {
-          const roleText = parts.slice(0, -1).join(" | ");
-          doc.text(roleText, margin, cursorY);
-          doc.setFont("helvetica", "normal");
-          doc.text(last, pageWidth - margin - doc.getTextWidth(last), cursorY);
-        } else {
-          const wrapped = doc.splitTextToSize(leftText, maxLineWidth);
-          for (const w of wrapped) {
-            checkPageBreak(lineHeight);
-            doc.text(w, margin, cursorY);
-            cursorY += lineHeight;
+        job.bullets.forEach(bullet => {
+          if (y > pageHeight - 20) {
+            doc.addPage();
+            y = margin;
+          }
+
+          // Bullet point
+          doc.text("•", margin, y);
+
+          // Bullet text with wrapping
+          const bulletLines = doc.splitTextToSize(bullet, contentWidth - 5);
+          bulletLines.forEach((line, i) => {
+            doc.text(line, margin + 5, y + (i * 4.5));
+          });
+
+          y += bulletLines.length * 4.5 + 1;
+        });
+
+        y += 2; // Space between jobs
+      });
+
+      y += 2;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // EDUCATION
+    // ═══════════════════════════════════════════════════════════════════════
+    if (y > pageHeight - 30) {
+      doc.addPage();
+      y = margin;
+    }
+
+    y = addSection(doc, "EDUCATION", y, margin, contentWidth);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("National College of Ireland", margin, y);
+    y += 5;
+    doc.setFontSize(9.5);
+    doc.setFont("helvetica", "normal");
+    doc.text("MSc Finance", margin, y);
+    y += 8;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // LICENSES & CERTIFICATIONS
+    // ═══════════════════════════════════════════════════════════════════════
+    if (y > pageHeight - 35) {
+      doc.addPage();
+      y = margin;
+    }
+
+    y = addSection(doc, "LICENSES & CERTIFICATIONS", y, margin, contentWidth);
+    const certs = [
+      "Bloomberg Market Concepts (BMC)",
+      "Bloomberg ESG Certification",
+      "Bloomberg Finance Fundamentals",
+      "Bloomberg Excel for Financial Analysis"
+    ];
+
+    certs.forEach(cert => {
+      doc.setFontSize(9.5);
+      doc.setFont("helvetica", "bolditalic");
+      doc.text(cert, margin, y);
+      y += 4.5;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "italic");
+      doc.text("Bloomberg Education  •", margin, y);
+      y += 6;
+    });
+    y += 1;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SKILLS
+    // ═══════════════════════════════════════════════════════════════════════
+    if (parsed.skills && parsed.skills.length > 0) {
+      if (y > pageHeight - 25) {
+        doc.addPage();
+        y = margin;
+      }
+
+      y = addSection(doc, "SKILLS", y, margin, contentWidth);
+      doc.setFontSize(9.5);
+      doc.setFont("helvetica", "normal");
+
+      const skillsText = parsed.skills.join("   •   ");
+      const skillsLines = doc.splitTextToSize(skillsText, contentWidth);
+      skillsLines.forEach(line => {
+        if (y > pageHeight - 15) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(line, margin, y);
+        y += 4.5;
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FOOTER
+    // ═══════════════════════════════════════════════════════════════════════
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "italic");
+    doc.text(`${candidateName} - page 1 of 1`, pageWidth / 2, pageHeight - 10, { align: "center" });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SAVE
+    // ═══════════════════════════════════════════════════════════════════════
+    const filename = `Resume_${candidateName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    doc.save(filename);
+
+    return true;
+
+  } catch (error) {
+    console.error("PDF generation failed:", error);
+    throw new Error("Failed to generate PDF: " + error.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function addSection(doc, title, y, margin, contentWidth) {
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, margin, y);
+  y += 1;
+
+  // Underline
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, margin + contentWidth, y);
+  y += 6;
+
+  return y;
+}
+
+function parseClaudeOutput(output) {
+  const sections = {
+    summary: "",
+    skills: [],
+    experience: []
+  };
+
+  try {
+    // Extract Professional Summary
+    const summaryMatch = output.match(/## OPTIMISED PROFESSIONAL SUMMARY\s*([\s\S]*?)(?=##|$)/);
+    if (summaryMatch) {
+      sections.summary = summaryMatch[1].trim().replace(/\*\*/g, '');
+    }
+
+    // Extract Skills
+    const skillsMatch = output.match(/## ATS SKILLS SECTION\s*([\s\S]*?)(?=##|$)/);
+    if (skillsMatch) {
+      const skillsText = skillsMatch[1];
+      const skillLines = skillsText.split('\n')
+        .map(line => line.replace(/^[•\-]\s*/, '').trim())
+        .filter(line => line.length > 0 && !line.startsWith('**'));
+
+      sections.skills = skillLines.slice(0, 15); // Top 15 skills
+    }
+
+    // Extract Experience
+    const experienceMatch = output.match(/## EXPERIENCE BULLET REWRITES\s*([\s\S]*?)(?=##|$)/);
+    if (experienceMatch) {
+      const expText = experienceMatch[1];
+      const jobBlocks = expText.split(/\*\*(.*?)\*\*/g).filter(s => s.trim());
+
+      for (let i = 0; i < jobBlocks.length; i += 2) {
+        if (jobBlocks[i + 1]) {
+          const titleLine = jobBlocks[i].trim();
+          const bullets = jobBlocks[i + 1]
+            .split('\n')
+            .map(s => s.replace(/^[•\-]\s*/, '').trim())
+            .filter(s => s.length > 0 && !s.startsWith('**'));
+
+          if (bullets.length > 0) {
+            // Try to extract date from title if it exists
+            const dateMatch = titleLine.match(/(\d{4}[-–]\d{4}|\w+\s\d{4}\s[-–]\s\w+\s\d{4})/);
+            const title = titleLine.replace(/(\d{4}[-–]\d{4}|\w+\s\d{4}\s[-–]\s\w+\s\d{4})/, '').trim();
+
+            sections.experience.push({
+              title: title || titleLine,
+              date: dateMatch ? dateMatch[1] : "",
+              bullets: bullets
+            });
           }
         }
-      } else {
-        const wrapped = doc.splitTextToSize(leftText, maxLineWidth);
-        for (const w of wrapped) {
-          checkPageBreak(lineHeight);
-          doc.text(w, margin, cursorY);
-          cursorY += lineHeight;
-        }
       }
-      doc.setFont("helvetica", "normal");
-      cursorY += lineHeight + (withDate || (parts.length >= 2) ? blockGap : 4);
-      continue;
     }
 
-    // —— 8. Bold line that’s followed by a date (company, location, title style)
-    if (
-      line.includes(",") &&
-      !line.startsWith("•") &&
-      lines[i + 1] &&
-      isDateOnlyLine(lines[i + 1].trim())
-    ) {
-      doc.setFontSize(bodySize);
-      doc.setFont("helvetica", "bold");
-      const wrapped = doc.splitTextToSize(line, maxLineWidth);
-      for (const w of wrapped) {
-        checkPageBreak(lineHeight);
-        doc.text(w, margin, cursorY);
-        cursorY += lineHeight;
-      }
-      cursorY += lineHeight; // next line will be date (handled by 6), right-aligned
-      continue;
-    }
-
-    // —— 9. Plain body (summary, skills, etc.)
-    doc.setFontSize(bodySize);
-    doc.setFont("helvetica", "normal");
-    const wrapped = doc.splitTextToSize(line, maxLineWidth);
-    for (const w of wrapped) {
-      checkPageBreak(lineHeight);
-      doc.text(w, margin, cursorY);
-      cursorY += lineHeight;
-    }
+  } catch (err) {
+    console.warn("Parsing error, using fallback:", err);
+    // If parsing fails, at least return the raw summary
+    sections.summary = output.substring(0, 500);
   }
 
-  doc.save(`${filename}.pdf`);
-};
+  return sections;
+}
