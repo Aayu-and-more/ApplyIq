@@ -1,14 +1,9 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { generateAtsResumePdf } from "./lib/resumePdfGenerator";
 import { useAppStore } from "./store/useAppStore";
 import { LoginView } from "./pages/LoginView";
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
-const STATUS_COLORS = {
-  Applied: "#3b82f6", Screening: "#f59e0b", Interview: "#8b5cf6",
-  Offer: "#10b981", Rejected: "#ef4444", Ghosted: "#6b7280",
-};
-const PRIORITY_COLORS = { Dream: "#f59e0b", Target: "#3b82f6", Backup: "#6b7280" };
 const KANBAN_COLS = ["Applied", "Screening", "Interview", "Offer", "Rejected", "Ghosted"];
 const NAV = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
@@ -19,7 +14,7 @@ const NAV = [
 ];
 
 // ─── ICON ─────────────────────────────────────────────────────────────────────
-const Icon = ({ name, size = 16, color = "currentColor" }) => {
+const Icon = ({ name, className = "w-4 h-4" }) => {
   const icons = {
     dashboard: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
     kanban: <><rect x="3" y="3" width="5" height="18" rx="1" /><rect x="10" y="3" width="5" height="12" rx="1" /><rect x="17" y="3" width="5" height="15" rx="1" /></>,
@@ -47,45 +42,11 @@ const Icon = ({ name, size = 16, color = "currentColor" }) => {
     logOut: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></>
   };
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       {icons[name] || null}
     </svg>
   );
 };
-
-// ─── THEME + STYLE FACTORIES ──────────────────────────────────────────────────
-const buildTheme = (dark) => ({
-  bg: dark ? "#080d1a" : "#f0f4fa",
-  surface: dark ? "#0e1524" : "#ffffff",
-  surface2: dark ? "#141e30" : "#f6f9fd",
-  border: dark ? "#1a2840" : "#dde3ef",
-  text: dark ? "#dce8f8" : "#111827",
-  textMuted: dark ? "#4e6a8a" : "#8898b0",
-  accent: "#2563eb",
-});
-
-const buildStyles = (t) => ({
-  card: { background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: "18px 20px" },
-  cardTitle: { fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 14 },
-  statCard: (color) => ({ background: t.surface, border: `1px solid ${t.border}`, borderTop: `3px solid ${color}`, borderRadius: 12, padding: "18px 20px" }),
-  badge: (status) => ({ display: "inline-flex", padding: "3px 9px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: (STATUS_COLORS[status] || "#6b7280") + "22", color: STATUS_COLORS[status] || "#6b7280" }),
-  prioBadge: (p) => ({ display: "inline-flex", padding: "2px 8px", borderRadius: 99, fontSize: 10.5, fontWeight: 600, background: (PRIORITY_COLORS[p] || "#6b7280") + "22", color: PRIORITY_COLORS[p] || "#6b7280" }),
-  input: { width: "100%", padding: "9px 13px", borderRadius: 7, border: `1px solid ${t.border}`, background: t.surface2, color: t.text, fontSize: 13.5, outline: "none", boxSizing: "border-box", fontFamily: "inherit" },
-  select: { width: "100%", padding: "9px 13px", borderRadius: 7, border: `1px solid ${t.border}`, background: t.surface2, color: t.text, fontSize: 13.5, outline: "none", boxSizing: "border-box" },
-  label: { fontSize: 11, fontWeight: 700, color: t.textMuted, marginBottom: 5, display: "block", textTransform: "uppercase", letterSpacing: "0.06em" },
-  btn: (variant) => {
-    const base = { padding: "9px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.15s", display: "inline-flex", alignItems: "center", gap: 6 };
-    if (variant === "primary") return { ...base, background: "#2563eb", color: "#fff", border: "none" };
-    if (variant === "danger") return { ...base, background: "#ef444420", color: "#ef4444", border: "1px solid #ef444440" };
-    return { ...base, background: t.surface2, color: t.text, border: `1px solid ${t.border}` };
-  },
-  th: { textAlign: "left", padding: "9px 13px", fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: "uppercase", letterSpacing: "0.07em", borderBottom: `1px solid ${t.border}` },
-  td: { padding: "11px 13px", fontSize: 13, borderBottom: `1px solid ${t.border}` },
-  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 },
-  modal: { background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: 28, width: 500, maxWidth: "100%", zIndex: 51, maxHeight: "90vh", overflowY: "auto" },
-  goalBar: { height: 9, borderRadius: 99, background: t.border, overflow: "hidden", margin: "8px 0 5px" },
-  row: { display: "flex", gap: 14, marginBottom: 20 },
-});
 
 // ─── VIEWS ────────────────────────────────────────────────────────────────────
 import { DashboardView } from "./pages/DashboardView";
@@ -126,9 +87,6 @@ export default function ApplyIQ() {
   const [copySuccess, setCopySuccess] = useState(false);
   const emptyForm = { company: "", role: "", date: new Date().toISOString().slice(0, 10), source: "LinkedIn", status: "Applied", salary: "", priority: "Target", notes: "" };
   const [form, setForm] = useState(emptyForm);
-
-  const t = buildTheme(dark);
-  const S = buildStyles(t);
 
   const today = new Date();
   const staleApps = apps.filter(a => { const d = (today - new Date(a.date)) / 86400000; return d > 14 && (a.status === "Applied" || a.status === "Screening"); });
@@ -177,7 +135,6 @@ export default function ApplyIQ() {
     setShowCvModal(false);
   };
 
-  // Safe PDF Handler
   const handleDownloadPdf = () => {
     if (!resumeOutput) {
       setNotification({ msg: "No content to download", type: "error" });
@@ -224,64 +181,72 @@ export default function ApplyIQ() {
   };
   const handleCopy = () => { navigator.clipboard.writeText(resumeOutput); setCopySuccess(true); setTimeout(() => setCopySuccess(false), 2000); };
 
-  const sp = { t, S };
-
-  if (authLoading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f4fa", color: "#111827", fontFamily: "sans-serif" }}>Loading Secure Database...</div>;
-  if (!user) return <LoginView t={t} S={S} />;
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-900 font-sans">Loading Secure Database...</div>;
+  if (!user) return <LoginView />;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: t.bg, fontFamily: "'DM Sans', system-ui, sans-serif", color: t.text, transition: "background 0.3s, color 0.3s" }}>
+    <div className={`flex min-h-screen font-sans transition-colors duration-300 ${dark ? 'dark bg-[#080d1a] text-blue-50' : 'bg-gray-50 text-gray-900'}`}>
+
+      {/* Notification Toast */}
       {notification && (
-        <div style={{ position: "fixed", top: 18, right: 18, zIndex: 100, background: notification.type === "error" ? "#ef444420" : "#2563eb20", border: `1px solid ${notification.type === "error" ? "#ef4444" : "#2563eb"}`, color: notification.type === "error" ? "#ef4444" : "#2563eb", padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, backdropFilter: "blur(8px)" }}>
+        <div className={`fixed top-5 right-5 z-50 px-4 py-2.5 rounded-lg text-sm font-semibold backdrop-blur-md border ${notification.type === "error" ? "bg-red-500/20 border-red-500 text-red-500" : "bg-blue-600/20 border-blue-600 text-blue-600"
+          }`}>
           {notification.msg}
         </div>
       )}
 
-      <div style={{ width: 220, background: t.surface, borderRight: `1px solid ${t.border}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
-        <div style={{ padding: "0 20px 24px", borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
-          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.5px", color: t.accent, display: "flex", alignItems: "center", gap: 8 }}>
-            <Icon name="briefcase" size={17} color={t.accent} />ApplyIQ
+      {/* Sidebar */}
+      <div className="w-56 bg-white dark:bg-[#0e1524] border-r border-gray-200 dark:border-[#1a2840] flex flex-col py-6 sticky top-0 h-screen shrink-0">
+        <div className="px-5 pb-6 border-b border-gray-200 dark:border-[#1a2840] mb-3">
+          <div className="text-xl font-extrabold tracking-tight text-blue-600 flex items-center gap-2">
+            <Icon name="briefcase" className="w-[18px] h-[18px] text-blue-600" />ApplyIQ
           </div>
-          <div style={{ fontSize: 10.5, color: t.textMuted, marginTop: 2, letterSpacing: "0.08em", textTransform: "uppercase" }}>Job Application Tracker</div>
+          <div className="text-[10px] text-gray-500 dark:text-[#4e6a8a] mt-1 tracking-widest uppercase font-semibold">Job Application Tracker</div>
         </div>
-        <div style={{ padding: "8px 0", flex: 1 }}>
+
+        <div className="py-2 flex-1">
           {NAV.map(n => (
             <button key={n.id} onClick={() => setView(n.id)}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 18px", margin: "1px 8px", borderRadius: 8, cursor: "pointer", fontSize: 13.5, fontWeight: view === n.id ? 600 : 400, color: view === n.id ? "#fff" : t.textMuted, background: view === n.id ? t.accent : "transparent", transition: "all 0.15s", border: "none", width: "calc(100% - 16px)", textAlign: "left" }}>
-              <Icon name={n.icon} size={14} color={view === n.id ? "#fff" : t.textMuted} />{n.label}
+              className={`flex items-center gap-2.5 px-4 py-2.5 mx-2 my-[2px] rounded-lg cursor-pointer text-[13.5px] transition-all w-[calc(100%-16px)] text-left ${view === n.id ? "font-semibold text-white bg-blue-600" : "font-normal text-gray-500 dark:text-[#8898b0] hover:bg-gray-100 dark:hover:bg-[#141e30] bg-transparent"
+                }`}>
+              <Icon name={n.icon} className={`w-3.5 h-3.5 ${view === n.id ? 'text-white' : 'text-gray-500 dark:text-[#8898b0]'}`} />{n.label}
             </button>
           ))}
         </div>
-        <div style={{ margin: "0 10px 10px", background: t.surface2, border: `1px solid ${t.border}`, borderRadius: 9, padding: "12px 14px" }}>
-          <div style={{ fontSize: 10.5, color: t.textMuted, marginBottom: 7, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 700 }}>Quick Stats</div>
-          {[{ label: "Total", value: apps.length, color: t.text }, { label: "This week", value: thisWeekApps, color: t.accent }, { label: "Offers", value: offerCount, color: "#10b981" }].map((s, i) => (
-            <div key={i} style={{ fontSize: 12, color: t.textMuted, display: "flex", justifyContent: "space-between", marginBottom: i < 2 ? 4 : 0 }}>
-              <span>{s.label}</span><span style={{ color: s.color, fontWeight: 600 }}>{s.value}</span>
+
+        <div className="mx-2.5 mb-2.5 bg-gray-50 dark:bg-[#141e30] border border-gray-200 dark:border-[#1a2840] rounded-xl p-3.5">
+          <div className="text-[10.5px] text-gray-500 dark:text-[#8898b0] mb-2 uppercase tracking-[0.07em] font-bold">Quick Stats</div>
+          {[{ label: "Total", value: apps.length, colorClass: "text-gray-900 dark:text-blue-50" }, { label: "This week", value: thisWeekApps, colorClass: "text-blue-600" }, { label: "Offers", value: offerCount, colorClass: "text-emerald-500" }].map((s, i) => (
+            <div key={i} className={`text-xs text-gray-500 dark:text-[#8898b0] flex justify-between ${i < 2 ? 'mb-1' : ''}`}>
+              <span>{s.label}</span><span className={`font-semibold ${s.colorClass}`}>{s.value}</span>
             </div>
           ))}
         </div>
+
         {staleApps.length > 0 && (
-          <div onClick={() => setView("analytics")} style={{ margin: "0 10px 10px", background: "#f9731612", border: "1px solid #f9731640", borderRadius: 9, padding: "10px 14px", cursor: "pointer" }}>
-            <div style={{ fontSize: 11, color: "#f97316", fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
-              <Icon name="bell" size={11} color="#f97316" />{staleApps.length} Follow-Up Alert{staleApps.length > 1 ? "s" : ""}
+          <div onClick={() => setView("analytics")} className="mx-2.5 mb-2.5 bg-orange-500/10 border border-orange-500/25 rounded-xl px-3.5 py-2.5 cursor-pointer hover:bg-orange-500/20 transition-colors">
+            <div className="text-[11px] text-orange-500 font-bold flex items-center gap-1.5">
+              <Icon name="bell" className="w-[11px] h-[11px]" />{staleApps.length} Follow-Up Alert{staleApps.length > 1 ? "s" : ""}
             </div>
           </div>
         )}
-        <div style={{ padding: "0 10px 6px" }}>
-          <button onClick={logout} style={{ ...S.btn("danger"), width: "100%", justifyContent: "center", fontSize: 12.5, marginBottom: 8 }}>
-            <Icon name={"logOut"} size={13} color={"#ef4444"} />Sign Out
+
+        <div className="px-2.5 pb-1.5 flex flex-col gap-2">
+          <button onClick={logout} className="w-full justify-center text-[12.5px] flex items-center gap-1.5 px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg font-semibold hover:bg-red-500/20 transition-colors cursor-pointer">
+            <Icon name="logOut" className="w-[13px] h-[13px]" />Sign Out
           </button>
-          <button onClick={() => setDark(!dark)} style={{ ...S.btn("secondary"), width: "100%", justifyContent: "center", fontSize: 12.5 }}>
-            <Icon name={dark ? "sun" : "moon"} size={13} color={t.textMuted} />{dark ? "Light Mode" : "Dark Mode"}
+          <button onClick={() => setDark(!dark)} className="w-full justify-center text-[12.5px] flex items-center gap-1.5 px-4 py-2 bg-gray-50 dark:bg-[#141e30] text-gray-900 dark:text-blue-50 border border-gray-200 dark:border-[#1a2840] rounded-lg font-semibold hover:bg-gray-100 dark:hover:bg-[#1a2840] transition-colors cursor-pointer">
+            <Icon name={dark ? "sun" : "moon"} className="w-[13px] h-[13px] text-gray-500 dark:text-[#8898b0]" />{dark ? "Light Mode" : "Dark Mode"}
           </button>
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: "28px 32px", overflowY: "auto", minWidth: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+      {/* Main Content Area */}
+      <div className="flex-1 px-8 py-7 overflow-y-auto min-w-0">
+        <div className="flex justify-between items-start mb-6">
           <div>
-            <div style={{ fontSize: 23, fontWeight: 700, letterSpacing: "-0.5px" }}>{NAV.find(n => n.id === view)?.label}</div>
-            <div style={{ fontSize: 12.5, color: t.textMuted, marginTop: 3 }}>
+            <div className="text-2xl font-bold tracking-tight">{NAV.find(n => n.id === view)?.label}</div>
+            <div className="text-[12.5px] text-gray-500 dark:text-[#8898b0] mt-1">
               {view === "dashboard" && `${apps.length} total · ${thisWeekApps} this week · ${responseRate}% response rate`}
               {view === "kanban" && "Drag cards between columns to update status"}
               {view === "applications" && `${filteredApps.length} of ${apps.length} applications`}
@@ -290,22 +255,24 @@ export default function ApplyIQ() {
             </div>
           </div>
           {view !== "resume" && (
-            <button onClick={() => { setForm(emptyForm); setShowAddModal(true); }} style={S.btn("primary")}>
-              <Icon name="plus" size={13} />Add Application
+            <button onClick={() => { setForm(emptyForm); setShowAddModal(true); }} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white border-none rounded-lg text-[13px] font-semibold hover:bg-blue-700 transition-colors cursor-pointer">
+              <Icon name="plus" className="w-[13px] h-[13px]" />Add Application
             </button>
           )}
         </div>
 
-        {view === "dashboard" && <DashboardView    {...sp} apps={apps} staleApps={staleApps} thisWeekApps={thisWeekApps} weeklyGoal={weeklyGoal} goalPct={goalPct} responseRate={responseRate} offerCount={offerCount} interviewRate={interviewRate} statusDist={statusDist} setView={setView} setShowGoalModal={setShowGoalModal} exportCSV={exportCSV} />}
-        {view === "kanban" && <KanbanView       {...sp} apps={apps} handleKanbanDrop={handleKanbanDrop} />}
-        {view === "applications" && <ApplicationsView {...sp} filteredApps={filteredApps} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleEdit={handleEdit} handleDelete={deleteApplication} setShowAddModal={setShowAddModal} exportCSV={exportCSV} />}
-        {view === "analytics" && <AnalyticsView    {...sp} apps={apps} staleApps={staleApps} responseRate={responseRate} interviewRate={interviewRate} offerCount={offerCount} />}
-        {view === "resume" && <ResumeView       {...sp} cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setDefaultCv={setDefaultCv} deleteCv={deleteCv} resumeJD={resumeJD} setResumeJD={setResumeJD} resumeOutput={resumeOutput} atsScore={atsScore} isGenerating={isGenerating} handleGenerateResume={handleGenerateResume} handleCopy={handleCopy} handleDownloadPdf={handleDownloadPdf} copySuccess={copySuccess} setShowCvModal={setShowCvModal} />}
+        {/* View Routing */}
+        {view === "dashboard" && <DashboardView apps={apps} staleApps={staleApps} thisWeekApps={thisWeekApps} weeklyGoal={weeklyGoal} goalPct={goalPct} responseRate={responseRate} offerCount={offerCount} interviewRate={interviewRate} statusDist={statusDist} setView={setView} setShowGoalModal={setShowGoalModal} exportCSV={exportCSV} />}
+        {view === "kanban" && <KanbanView apps={apps} handleKanbanDrop={handleKanbanDrop} />}
+        {view === "applications" && <ApplicationsView filteredApps={filteredApps} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleEdit={handleEdit} handleDelete={deleteApplication} setShowAddModal={setShowAddModal} exportCSV={exportCSV} />}
+        {view === "analytics" && <AnalyticsView apps={apps} staleApps={staleApps} responseRate={responseRate} interviewRate={interviewRate} offerCount={offerCount} />}
+        {view === "resume" && <ResumeView cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setDefaultCv={setDefaultCv} deleteCv={deleteCv} resumeJD={resumeJD} setResumeJD={setResumeJD} resumeOutput={resumeOutput} atsScore={atsScore} isGenerating={isGenerating} handleGenerateResume={handleGenerateResume} handleCopy={handleCopy} handleDownloadPdf={handleDownloadPdf} copySuccess={copySuccess} setShowCvModal={setShowCvModal} />}
       </div>
 
-      {showAddModal && <AddAppModal  {...sp} form={form} setForm={setForm} handleSave={handleSave} onClose={() => setShowAddModal(false)} />}
-      {showGoalModal && <GoalModal    {...sp} weeklyGoal={weeklyGoal} thisWeekApps={thisWeekApps} onSave={(g) => { saveWeeklyGoal(g); setShowGoalModal(false); }} onClose={() => setShowGoalModal(false)} />}
-      {showCvModal && <AddCvModal   {...sp} cvBeingAdded={cvBeingAdded} setCvBeingAdded={setCvBeingAdded} handlePdfUpload={handlePdfUpload} saveCv={handleSaveCv} onClose={() => { setShowCvModal(false); setCvBeingAdded({ name: "", base64: null, fileName: null }); }} />}
+      {/* Modals */}
+      {showAddModal && <AddAppModal form={form} setForm={setForm} handleSave={handleSave} onClose={() => setShowAddModal(false)} />}
+      {showGoalModal && <GoalModal weeklyGoal={weeklyGoal} thisWeekApps={thisWeekApps} onSave={(g) => { saveWeeklyGoal(g); setShowGoalModal(false); }} onClose={() => setShowGoalModal(false)} />}
+      {showCvModal && <AddCvModal cvBeingAdded={cvBeingAdded} setCvBeingAdded={setCvBeingAdded} handlePdfUpload={handlePdfUpload} saveCv={handleSaveCv} onClose={() => { setShowCvModal(false); setCvBeingAdded({ name: "", base64: null, fileName: null }); }} />}
     </div>
   );
 }

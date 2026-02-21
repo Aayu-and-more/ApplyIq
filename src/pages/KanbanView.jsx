@@ -1,7 +1,14 @@
 import React, { useState } from "react";
 
-const Icon = ({ name, size = 16, color = "currentColor" }) => {
-    return <span style={{ fontSize: size, color }}>Icon</span>;
+const Icon = ({ name, className = "w-4 h-4" }) => {
+    const icons = {
+        bell: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></>,
+    };
+    return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {icons[name] || null}
+        </svg>
+    );
 };
 
 const STATUS_COLORS = {
@@ -11,46 +18,75 @@ const STATUS_COLORS = {
 
 const KANBAN_COLS = ["Applied", "Screening", "Interview", "Offer", "Rejected", "Ghosted"];
 
-export const KanbanView = ({ apps, handleKanbanDrop, t, S }) => {
+export const KanbanView = ({ apps, handleKanbanDrop }) => {
     const [dragging, setDragging] = useState(null);
     const [dragOver, setDragOver] = useState(null);
+
     return (
-        <div>
-            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 12 }}>
+        <div className="flex flex-col h-[calc(100vh-140px)]">
+            <div className="flex gap-4 overflow-x-auto pb-4 flex-1 items-start min-h-0">
                 {KANBAN_COLS.map(col => {
                     const colApps = apps.filter(a => a.status === col);
+                    const isDragOver = dragOver === col;
+
                     return (
                         <div key={col}
-                            style={{ minWidth: 175, flex: 1, background: t.surface2, border: `1px solid ${dragOver === col ? STATUS_COLORS[col] : t.border}`, borderTop: `3px solid ${STATUS_COLORS[col] || "#6b7280"}`, borderRadius: 10, padding: "12px 10px", transition: "border 0.15s" }}
+                            className={`min-w-[260px] flex-1 flex flex-col surface-alt rounded-2xl p-4 transition-all duration-200 shadow-sm
+                                ${isDragOver ? "ring-2 ring-inset" : "border"} 
+                            `}
+                            style={{
+                                borderColor: isDragOver ? STATUS_COLORS[col] : "var(--tw-border-opacity)",
+                                borderTopWidth: '4px',
+                                borderTopColor: STATUS_COLORS[col] || "#6b7280"
+                            }}
                             onDragOver={e => { e.preventDefault(); setDragOver(col); }}
                             onDrop={() => { if (dragging) handleKanbanDrop(dragging, col); setDragging(null); setDragOver(null); }}
                             onDragLeave={() => setDragOver(null)}
                         >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: STATUS_COLORS[col] || "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em" }}>{col}</div>
-                                <div style={{ fontSize: 10.5, background: (STATUS_COLORS[col] || "#6b7280") + "22", color: STATUS_COLORS[col] || "#6b7280", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>{colApps.length}</div>
-                            </div>
-                            {colApps.map(a => (
-                                <div key={a.id}
-                                    style={{ background: t.surface, border: `1px solid ${t.border}`, borderLeft: `3px solid ${STATUS_COLORS[a.status]}`, borderRadius: 7, padding: "10px", marginBottom: 7, cursor: "grab" }}
-                                    draggable onDragStart={() => setDragging(a.id)}
-                                >
-                                    <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 2 }}>{a.company}</div>
-                                    <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 7 }}>{a.role}</div>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                        <span style={S.prioBadge(a.priority)}>{a.priority}</span>
-                                        <span style={{ fontSize: 10.5, color: t.textMuted }}>{a.date}</span>
-                                    </div>
-                                    {a.salary && <div style={{ fontSize: 10.5, color: t.textMuted, marginTop: 4 }}>{a.salary}</div>}
-                                    {a.followUp && <div style={{ fontSize: 10.5, color: "#f97316", marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}><Icon name="bell" size={10} color="#f97316" />Follow up</div>}
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="text-[12px] font-bold uppercase tracking-widest" style={{ color: STATUS_COLORS[col] || "#6b7280" }}>{col}</div>
+                                <div className="text-[11px] px-2 py-0.5 rounded-full font-bold" style={{ backgroundColor: `${STATUS_COLORS[col]}22`, color: STATUS_COLORS[col] || "#6b7280" }}>
+                                    {colApps.length}
                                 </div>
-                            ))}
-                            {colApps.length === 0 && <div style={{ fontSize: 11.5, color: t.textMuted, textAlign: "center", padding: "18px 0", opacity: 0.4 }}>Drop here</div>}
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-3 min-h-[50px]">
+                                {colApps.map(a => (
+                                    <div key={a.id}
+                                        className="surface border rounded-xl p-3.5 cursor-grab active:cursor-grabbing hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
+                                        style={{ borderLeftWidth: '4px', borderLeftColor: STATUS_COLORS[a.status] }}
+                                        draggable onDragStart={() => setDragging(a.id)}
+                                    >
+                                        <div className="text-[13.5px] font-bold text-gray-900 dark:text-blue-50 tracking-tight leading-tight mb-1">{a.company}</div>
+                                        <div className="text-[12px] font-medium text-muted mb-2.5">{a.role}</div>
+
+                                        <div className="flex justify-between items-center mt-2">
+                                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10.5px] font-bold"
+                                                style={{ backgroundColor: a.priority === "Dream" ? "#f59e0b22" : a.priority === "Target" ? "#3b82f622" : "#6b728022", color: a.priority === "Dream" ? "#f59e0b" : a.priority === "Target" ? "#3b82f6" : "#6b7280" }}>
+                                                {a.priority}
+                                            </span>
+                                            <span className="text-[11px] font-medium text-muted">{a.date}</span>
+                                        </div>
+
+                                        {a.salary && <div className="text-[11px] font-medium text-muted mt-2.5">{a.salary}</div>}
+                                        {a.followUp && (
+                                            <div className="text-[11px] font-bold text-orange-500 mt-2.5 flex items-center gap-1.5">
+                                                <Icon name="bell" className="w-3 h-3" />Follow up
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                                {colApps.length === 0 && (
+                                    <div className="text-[12px] font-medium text-muted text-center py-6 opacity-40 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl m-1">
+                                        Drop here
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     );
                 })}
             </div>
-            <div style={{ fontSize: 11.5, color: t.textMuted, textAlign: "center", marginTop: 4 }}>💡 Drag cards between columns to update status</div>
+            <div className="text-[12px] font-medium text-muted text-center mt-2 py-2">💡 Drag cards between columns to update status</div>
         </div>
     );
 };

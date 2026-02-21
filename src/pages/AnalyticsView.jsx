@@ -4,7 +4,7 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 
-export const AnalyticsView = ({ apps, staleApps, responseRate, interviewRate, offerCount, t, S }) => {
+export const AnalyticsView = ({ apps, staleApps, responseRate, interviewRate, offerCount }) => {
     const monthly = [
         { month: "Oct", apps: 3, responses: 1 }, { month: "Nov", apps: 7, responses: 2 },
         { month: "Dec", apps: 12, responses: 4 }, { month: "Jan", apps: 18, responses: 7 }, { month: "Feb", apps: 8, responses: 3 },
@@ -23,71 +23,105 @@ export const AnalyticsView = ({ apps, staleApps, responseRate, interviewRate, of
     };
 
     return (
-        <div>
-            <div style={S.row}>
-                <div style={{ ...S.card, flex: 2 }}>
-                    <div style={S.cardTitle}>Monthly Volume vs Response Rate</div>
-                    <ResponsiveContainer width="100%" height={210}>
-                        <LineChart data={monthly} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={t.border} />
-                            <XAxis dataKey="month" tick={{ fontSize: 11, fill: t.textMuted }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 11, fill: t.textMuted }} axisLine={false} tickLine={false} />
-                            <Tooltip contentStyle={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 7, fontSize: 12 }} />
-                            <Legend wrapperStyle={{ fontSize: 11.5 }} />
-                            <Line type="monotone" dataKey="apps" stroke={t.accent} strokeWidth={2.5} dot={{ r: 3.5 }} name="Applications" />
-                            <Line type="monotone" dataKey="responses" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3.5 }} name="Responses" />
-                        </LineChart>
-                    </ResponsiveContainer>
+        <div className="flex flex-col gap-5">
+            {/* Chart Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+                {/* Line Chart */}
+                <div className="surface rounded-2xl shadow-sm p-5 lg:col-span-2 flex flex-col">
+                    <div className="text-[11.5px] font-bold text-muted uppercase tracking-widest mb-4">Monthly Volume vs Response Rate</div>
+                    <div className="flex-1 min-h-[220px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={monthly} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-800" />
+                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#8898b0" }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 11, fill: "#8898b0" }} axisLine={false} tickLine={false} />
+                                <Tooltip contentStyle={{ backgroundColor: 'var(--tw-prose-body)', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }} />
+                                <Legend wrapperStyle={{ fontSize: 11.5, paddingTop: '10px' }} />
+                                <Line type="monotone" dataKey="apps" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2 }} activeDot={{ r: 5 }} name="Applications" />
+                                <Line type="monotone" dataKey="responses" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2 }} activeDot={{ r: 5 }} name="Responses" />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
-                <div style={{ ...S.card, flex: 1 }}>
-                    <div style={S.cardTitle}>Conversion Funnel</div>
-                    <ResponsiveContainer width="100%" height={210}>
-                        <BarChart data={funnel} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={t.border} horizontal={false} />
-                            <XAxis type="number" tick={{ fontSize: 11, fill: t.textMuted }} axisLine={false} tickLine={false} />
-                            <YAxis type="category" dataKey="stage" tick={{ fontSize: 11, fill: t.textMuted }} axisLine={false} tickLine={false} width={65} />
-                            <Tooltip contentStyle={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 7, fontSize: 12 }} />
-                            <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                                {funnel.map((_, i) => <Cell key={i} fill={[t.accent, "#f59e0b", "#8b5cf6", "#10b981"][i]} />)}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+
+                {/* Funnel Chart */}
+                <div className="surface rounded-2xl shadow-sm p-5 flex flex-col">
+                    <div className="text-[11.5px] font-bold text-muted uppercase tracking-widest mb-4">Conversion Funnel</div>
+                    <div className="flex-1 min-h-[220px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={funnel} layout="vertical" margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-800" horizontal={false} />
+                                <XAxis type="number" tick={{ fontSize: 11, fill: "#8898b0" }} axisLine={false} tickLine={false} />
+                                <YAxis type="category" dataKey="stage" tick={{ fontSize: 11, fill: "#8898b0" }} axisLine={false} tickLine={false} width={70} />
+                                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ backgroundColor: 'var(--tw-prose-body)', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }} />
+                                <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={24}>
+                                    {funnel.map((_, i) => <Cell key={i} fill={["#3b82f6", "#f59e0b", "#8b5cf6", "#10b981"][i]} />)}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             </div>
-            <div style={S.row}>
+
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: "Response Rate", value: `${responseRate}%`, sub: "Got at least a screening call", color: t.accent },
-                    { label: "Interview Rate", value: `${interviewRate}%`, sub: "Reached interview stage", color: "#8b5cf6" },
-                    { label: "Offer Rate", value: `${apps.length ? Math.round((offerCount / apps.length) * 100) : 0}%`, sub: "Received an offer", color: "#10b981" },
-                    { label: "Active Pipeline", value: apps.filter(a => ["Screening", "Interview"].includes(a.status)).length, sub: "In active stages", color: "#f59e0b" },
+                    { label: "Response Rate", value: `${responseRate}%`, sub: "Got at least a screening call", color: "border-blue-600", text: "text-blue-600" },
+                    { label: "Interview Rate", value: `${interviewRate}%`, sub: "Reached interview stage", color: "border-violet-500", text: "text-violet-500" },
+                    { label: "Offer Rate", value: `${apps.length ? Math.round((offerCount / apps.length) * 100) : 0}%`, sub: "Received an offer", color: "border-emerald-500", text: "text-emerald-500" },
+                    { label: "Active Pipeline", value: apps.filter(a => ["Screening", "Interview"].includes(a.status)).length, sub: "In active stages", color: "border-amber-500", text: "text-amber-500" },
                 ].map((m, i) => (
-                    <div key={i} style={{ ...S.statCard(m.color), flex: 1 }}>
-                        <div style={{ fontSize: 11, color: t.textMuted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 7 }}>{m.label}</div>
-                        <div style={{ fontSize: 24, fontWeight: 800, color: m.color }}>{m.value}</div>
-                        <div style={{ fontSize: 11.5, color: t.textMuted, marginTop: 5 }}>{m.sub}</div>
+                    <div key={i} className={`surface border-t-[3px] ${m.color} rounded-xl p-5 shadow-sm hover:-translate-y-1 transition-transform duration-300`}>
+                        <div className="text-[11px] text-muted uppercase tracking-widest font-bold mb-2">{m.label}</div>
+                        <div className={`text-3xl font-extrabold tracking-tight leading-none ${m.text}`}>{m.value}</div>
+                        <div className="text-[11.5px] text-muted mt-2 font-medium">{m.sub}</div>
                     </div>
                 ))}
             </div>
+
+            {/* Stale Apps Table */}
             {staleApps.length > 0 && (
-                <div style={S.card}>
-                    <div style={S.cardTitle}>⚠️ Stale Applications — Follow-Up Needed</div>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead><tr>{["Company", "Role", "Applied", "Days Stale", "Status"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                        <tbody>
-                            {staleApps.map(a => {
-                                const days = Math.floor((today - new Date(a.date)) / 86400000);
-                                return (
-                                    <tr key={a.id}>
-                                        <td style={{ ...S.td, fontWeight: 600 }}>{a.company}</td>
-                                        <td style={{ ...S.td, fontSize: 12.5, color: t.textMuted }}>{a.role}</td>
-                                        <td style={{ ...S.td, fontSize: 11.5, color: t.textMuted }}>{a.date}</td>
-                                        <td style={{ ...S.td, color: "#f97316", fontWeight: 700 }}>{days}d</td>
-                                        <td style={S.td}><span style={S.badge(a.status)}>{a.status}</span></td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                <div className="surface rounded-2xl shadow-sm border overflow-hidden mt-1">
+                    <div className="p-5 border-b border-gray-100 dark:border-gray-800 bg-orange-50/50 dark:bg-orange-500/5">
+                        <div className="text-[11.5px] font-bold text-orange-600 dark:text-orange-500 uppercase tracking-widest flex items-center gap-2">
+                            <span className="text-[14px]">⚠️</span> Stale Applications — Follow-Up Needed
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-gray-50/50 dark:bg-[#141e30]/30">
+                                <tr>
+                                    {["Company", "Role", "Applied", "Days Stale", "Status"].map(h => (
+                                        <th key={h} className="py-3 px-5 text-[11px] font-bold text-muted uppercase tracking-widest border-b border-gray-100 dark:border-gray-800">{h}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800/80">
+                                {staleApps.map(a => {
+                                    const days = Math.floor((today - new Date(a.date)) / 86400000);
+                                    return (
+                                        <tr key={a.id} className="hover:bg-orange-50/30 dark:hover:bg-orange-500/5 transition-colors">
+                                            <td className="py-3 px-5 font-bold text-[13.5px] text-gray-900 dark:text-blue-50">{a.company}</td>
+                                            <td className="py-3 px-5 text-[13px] text-muted font-medium">{a.role}</td>
+                                            <td className="py-3 px-5 text-[12px] text-muted whitespace-nowrap">{a.date}</td>
+                                            <td className="py-3 px-5">
+                                                <span className="inline-flex items-center justify-center bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400 font-bold px-2.5 py-1 rounded-md text-[12px]">
+                                                    {days}d
+                                                </span>
+                                            </td>
+                                            <td className="py-3 px-5">
+                                                <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold"
+                                                    style={{ backgroundColor: `${STATUS_COLORS[a.status]}15`, color: STATUS_COLORS[a.status] || "#6b7280" }}>
+                                                    {a.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

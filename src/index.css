@@ -1,3 +1,27 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { min-height: 100vh; }
-#root { min-height: 100vh; }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans antialiased bg-gray-50 text-gray-900 transition-colors duration-300;
+  }
+}
+
+@layer utilities {
+  .brand-text {
+    @apply text-blue-600;
+  }
+  .brand-bg {
+    @apply bg-blue-600;
+  }
+  .surface {
+    @apply bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700;
+  }
+  .surface-alt {
+    @apply bg-gray-50 border-gray-200 dark:bg-gray-900 dark:border-gray-800;
+  }
+  .text-muted {
+    @apply text-gray-500 dark:text-gray-400;
+  }
+}
