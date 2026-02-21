@@ -1,9 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { generateAtsResumePdf } from "./lib/resumePdfGenerator";
-import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
-} from "recharts";
+import { useAppStore } from "./store/useAppStore";
+import { LoginView } from "./pages/LoginView";
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 const STATUS_COLORS = {
@@ -12,7 +10,6 @@ const STATUS_COLORS = {
 };
 const PRIORITY_COLORS = { Dream: "#f59e0b", Target: "#3b82f6", Backup: "#6b7280" };
 const KANBAN_COLS = ["Applied", "Screening", "Interview", "Offer", "Rejected", "Ghosted"];
-const LS = { APPS: "applyiq_apps", DARK: "applyiq_dark", GOAL: "applyiq_goal", CVS: "applyiq_cvs" };
 const NAV = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
   { id: "kanban", label: "Pipeline", icon: "kanban" },
@@ -20,27 +17,6 @@ const NAV = [
   { id: "analytics", label: "Analytics", icon: "chart" },
   { id: "resume", label: "AI Resume", icon: "resume" },
 ];
-const SEED_APPS = [
-  { id: 1, company: "Goldman Sachs", role: "Analyst, Risk Management", date: "2025-01-28", source: "LinkedIn", status: "Interview", salary: "£70k–£85k", priority: "Dream", notes: "3rd round scheduled Feb 12", followUp: false },
-  { id: 2, company: "BlackRock", role: "Portfolio Analytics Associate", date: "2025-01-25", source: "LinkedIn", status: "Screening", salary: "£65k–£75k", priority: "Dream", notes: "HR call done, awaiting next step", followUp: true },
-  { id: 3, company: "Barclays", role: "Quantitative Analyst", date: "2025-01-22", source: "LinkedIn", status: "Applied", salary: "£60k–£72k", priority: "Target", notes: "", followUp: true },
-  { id: 4, company: "HSBC", role: "FX Derivatives Analyst", date: "2025-01-20", source: "LinkedIn", status: "Rejected", salary: "£58k–£68k", priority: "Target", notes: "Rejected after phone screen", followUp: false },
-  { id: 5, company: "Citadel", role: "Quantitative Research", date: "2025-01-18", source: "LinkedIn", status: "Offer", salary: "£90k–£120k", priority: "Dream", notes: "OFFER RECEIVED — deciding", followUp: false },
-  { id: 6, company: "JP Morgan", role: "Markets Associate", date: "2025-01-30", source: "LinkedIn", status: "Applied", salary: "£68k–£80k", priority: "Dream", notes: "", followUp: false },
-  { id: 7, company: "Two Sigma", role: "Quant Finance Analyst", date: "2025-01-26", source: "LinkedIn", status: "Interview", salary: "£85k–£110k", priority: "Dream", notes: "Technical round booked", followUp: false },
-  { id: 8, company: "Monzo", role: "Credit Risk Analyst", date: "2025-02-03", source: "LinkedIn", status: "Screening", salary: "£52k–£65k", priority: "Backup", notes: "Online assessment sent", followUp: false },
-];
-const WEEKLY_DATA = [
-  { week: "Dec W3", apps: 2 }, { week: "Dec W4", apps: 4 }, { week: "Jan W1", apps: 6 },
-  { week: "Jan W2", apps: 8 }, { week: "Jan W3", apps: 5 }, { week: "Jan W4", apps: 9 }, { week: "Feb W1", apps: 7 },
-];
-
-// ─── LOCALSTORAGE HELPERS ─────────────────────────────────────────────────────
-const lsGet = (key, fallback) => {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
-  catch { return fallback; }
-};
-const lsSet = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch { } };
 
 // ─── ICON ─────────────────────────────────────────────────────────────────────
 const Icon = ({ name, size = 16, color = "currentColor" }) => {
@@ -57,7 +33,7 @@ const Icon = ({ name, size = 16, color = "currentColor" }) => {
     alert: <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></>,
     search: <><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></>,
     edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></>,
-    trash: <><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></>,
+    trash: <><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1-1v2" /></>,
     x: <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>,
     check: <polyline points="20 6 9 17 4 12" />,
     zap: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
@@ -68,6 +44,7 @@ const Icon = ({ name, size = 16, color = "currentColor" }) => {
     star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />,
     target: <><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></>,
     copy: <><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>,
+    logOut: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></>
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -111,37 +88,35 @@ const buildStyles = (t) => ({
 });
 
 // ─── VIEWS ────────────────────────────────────────────────────────────────────
-
 import { DashboardView } from "./pages/DashboardView";
 import { KanbanView } from "./pages/KanbanView";
 import { ApplicationsView } from "./pages/ApplicationsView";
 import { AnalyticsView } from "./pages/AnalyticsView";
 import { ResumeView } from "./pages/ResumeView";
 
-
+// ─── MODALS ───────────────────────────────────────────────────────────────────
 import { AddAppModal } from "./components/modals/AddAppModal";
 import { GoalModal } from "./components/modals/GoalModal";
 import { AddCvModal } from "./components/modals/AddCvModal";
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function ApplyIQ() {
-  const [dark, setDark] = useState(() => lsGet(LS.DARK, true));
-  const [apps, setApps] = useState(() => lsGet(LS.APPS, SEED_APPS));
-  const [weeklyGoal, setWeeklyGoal] = useState(() => lsGet(LS.GOAL, 10));
-  const [cvLibrary, setCvLibrary] = useState(() => lsGet(LS.CVS, []));
+  const {
+    user, authLoading, apps, cvLibrary, weeklyGoal, dark, view, notification,
+    setDark, setView, setNotification, saveApplication, deleteApplication, updateApplicationStatus,
+    saveCv, deleteCv, setDefaultCv, saveWeeklyGoal, initStore, logout
+  } = useAppStore();
 
-  useEffect(() => lsSet(LS.DARK, dark), [dark]);
-  useEffect(() => lsSet(LS.APPS, apps), [apps]);
-  useEffect(() => lsSet(LS.GOAL, weeklyGoal), [weeklyGoal]);
-  useEffect(() => lsSet(LS.CVS, cvLibrary), [cvLibrary]);
+  useEffect(() => {
+    const unsubscribe = initStore();
+    return () => unsubscribe && unsubscribe();
+  }, []);
 
-  const [view, setView] = useState("dashboard");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showCvModal, setShowCvModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-  const [notification, setNotification] = useState(null);
   const [selectedCvId, setSelectedCvId] = useState(null);
   const [resumeJD, setResumeJD] = useState("");
   const [resumeOutput, setResumeOutput] = useState("");
@@ -154,11 +129,6 @@ export default function ApplyIQ() {
 
   const t = buildTheme(dark);
   const S = buildStyles(t);
-
-  const notify = useCallback((msg, type = "success") => {
-    setNotification({ msg, type });
-    setTimeout(() => setNotification(null), 3000);
-  }, []);
 
   const today = new Date();
   const staleApps = apps.filter(a => { const d = (today - new Date(a.date)) / 86400000; return d > 14 && (a.status === "Applied" || a.status === "Screening"); });
@@ -175,13 +145,12 @@ export default function ApplyIQ() {
 
   const handleSave = () => {
     if (!form.company.trim() || !form.role.trim()) return;
-    if (form.id) { setApps(prev => prev.map(a => a.id === form.id ? { ...form } : a)); notify("Application updated"); }
-    else { setApps(prev => [...prev, { ...form, id: Date.now(), followUp: false }]); notify("Application added"); }
+    saveApplication(form);
     setShowAddModal(false); setForm(emptyForm);
   };
-  const handleDelete = id => { setApps(prev => prev.filter(a => a.id !== id)); notify("Deleted", "error"); };
+
   const handleEdit = app => { setForm({ ...app }); setShowAddModal(true); };
-  const handleKanbanDrop = (appId, newStatus) => { setApps(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a)); notify(`Moved to ${newStatus}`); };
+  const handleKanbanDrop = (appId, newStatus) => { updateApplicationStatus(appId, newStatus); };
 
   const exportCSV = () => {
     const headers = ["Company", "Role", "Date", "Source", "Status", "Priority", "Salary", "Notes"];
@@ -191,47 +160,42 @@ export default function ApplyIQ() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url; link.download = `ApplyIQ_${new Date().toISOString().slice(0, 10)}.csv`; link.click();
-    URL.revokeObjectURL(url); notify("CSV exported");
+    URL.revokeObjectURL(url); setNotification({ msg: "CSV exported", type: "success" });
   };
 
   const handlePdfUpload = (e) => {
     const file = e.target.files[0];
-    if (!file || file.type !== "application/pdf") { notify("Please upload a PDF", "error"); return; }
+    if (!file || file.type !== "application/pdf") { setNotification({ msg: "Please upload a PDF", type: "error" }); return; }
     const reader = new FileReader();
-    reader.onload = (ev) => { setCvBeingAdded(prev => ({ ...prev, base64: ev.target.result.split(",")[1], fileName: file.name })); notify(`${file.name} loaded`); };
+    reader.onload = (ev) => { setCvBeingAdded(prev => ({ ...prev, base64: ev.target.result.split(",")[1], fileName: file.name })); setNotification({ msg: `${file.name} loaded`, type: "success" }); };
     reader.readAsDataURL(file);
   };
-  const saveCv = () => {
+  const handleSaveCv = () => {
     if (!cvBeingAdded.name.trim() || !cvBeingAdded.base64) return;
-    const newCv = { id: Date.now(), name: cvBeingAdded.name.trim(), fileName: cvBeingAdded.fileName, base64: cvBeingAdded.base64, isDefault: cvLibrary.length === 0, addedAt: new Date().toISOString().slice(0, 10) };
-    setCvLibrary(prev => [...prev, newCv]);
-    if (!selectedCvId) setSelectedCvId(newCv.id);
+    saveCv(cvBeingAdded);
     setCvBeingAdded({ name: "", base64: null, fileName: null });
     setShowCvModal(false);
-    notify(`"${newCv.name}" saved`);
   };
-  const deleteCv = id => { setCvLibrary(prev => prev.filter(c => c.id !== id)); if (selectedCvId === id) setSelectedCvId(null); notify("CV removed", "error"); };
-  const setDefaultCv = id => { setCvLibrary(prev => prev.map(c => ({ ...c, isDefault: c.id === id }))); setSelectedCvId(id); notify("Default CV updated"); };
 
   // Safe PDF Handler
   const handleDownloadPdf = () => {
     if (!resumeOutput) {
-      notify("No content to download", "error");
+      setNotification({ msg: "No content to download", type: "error" });
       return;
     }
     try {
       generateAtsResumePdf(resumeOutput);
-      notify("PDF downloaded!");
+      setNotification({ msg: "PDF downloaded!", type: "success" });
     } catch (err) {
       console.error("PDF generation error:", err);
-      notify("PDF download failed", "error");
+      setNotification({ msg: "PDF download failed", type: "error" });
     }
   };
 
   const handleGenerateResume = async () => {
     const cv = cvLibrary.find(c => c.id === selectedCvId) || cvLibrary.find(c => c.isDefault);
-    if (!cv) { notify("Please select a CV first", "error"); return; }
-    if (!resumeJD.trim()) { notify("Please paste a job description", "error"); return; }
+    if (!cv) { setNotification({ msg: "Please select a CV first", type: "error" }); return; }
+    if (!resumeJD.trim()) { setNotification({ msg: "Please paste a job description", type: "error" }); return; }
     setIsGenerating(true); setResumeOutput("");
     try {
       const res = await fetch("/api/generate-resume", {
@@ -252,15 +216,18 @@ export default function ApplyIQ() {
       }
 
       setResumeOutput(finalResult);
-      notify("Resume optimised!");
+      setNotification({ msg: "Resume optimised!", type: "success" });
     } catch (err) {
       setResumeOutput(`⚠️ Error: ${err.message}\n\nMake sure ANTHROPIC_API_KEY is set in Vercel environment variables.`);
-      notify("Error — check API key", "error");
+      setNotification({ msg: "Error — check API key", type: "error" });
     } finally { setIsGenerating(false); }
   };
   const handleCopy = () => { navigator.clipboard.writeText(resumeOutput); setCopySuccess(true); setTimeout(() => setCopySuccess(false), 2000); };
 
   const sp = { t, S };
+
+  if (authLoading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f4fa", color: "#111827", fontFamily: "sans-serif" }}>Loading Secure Database...</div>;
+  if (!user) return <LoginView t={t} S={S} />;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: t.bg, fontFamily: "'DM Sans', system-ui, sans-serif", color: t.text, transition: "background 0.3s, color 0.3s" }}>
@@ -301,6 +268,9 @@ export default function ApplyIQ() {
           </div>
         )}
         <div style={{ padding: "0 10px 6px" }}>
+          <button onClick={logout} style={{ ...S.btn("danger"), width: "100%", justifyContent: "center", fontSize: 12.5, marginBottom: 8 }}>
+            <Icon name={"logOut"} size={13} color={"#ef4444"} />Sign Out
+          </button>
           <button onClick={() => setDark(!dark)} style={{ ...S.btn("secondary"), width: "100%", justifyContent: "center", fontSize: 12.5 }}>
             <Icon name={dark ? "sun" : "moon"} size={13} color={t.textMuted} />{dark ? "Light Mode" : "Dark Mode"}
           </button>
@@ -328,14 +298,14 @@ export default function ApplyIQ() {
 
         {view === "dashboard" && <DashboardView    {...sp} apps={apps} staleApps={staleApps} thisWeekApps={thisWeekApps} weeklyGoal={weeklyGoal} goalPct={goalPct} responseRate={responseRate} offerCount={offerCount} interviewRate={interviewRate} statusDist={statusDist} setView={setView} setShowGoalModal={setShowGoalModal} exportCSV={exportCSV} />}
         {view === "kanban" && <KanbanView       {...sp} apps={apps} handleKanbanDrop={handleKanbanDrop} />}
-        {view === "applications" && <ApplicationsView {...sp} filteredApps={filteredApps} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleEdit={handleEdit} handleDelete={handleDelete} setShowAddModal={setShowAddModal} exportCSV={exportCSV} />}
+        {view === "applications" && <ApplicationsView {...sp} filteredApps={filteredApps} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleEdit={handleEdit} handleDelete={deleteApplication} setShowAddModal={setShowAddModal} exportCSV={exportCSV} />}
         {view === "analytics" && <AnalyticsView    {...sp} apps={apps} staleApps={staleApps} responseRate={responseRate} interviewRate={interviewRate} offerCount={offerCount} />}
         {view === "resume" && <ResumeView       {...sp} cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setDefaultCv={setDefaultCv} deleteCv={deleteCv} resumeJD={resumeJD} setResumeJD={setResumeJD} resumeOutput={resumeOutput} atsScore={atsScore} isGenerating={isGenerating} handleGenerateResume={handleGenerateResume} handleCopy={handleCopy} handleDownloadPdf={handleDownloadPdf} copySuccess={copySuccess} setShowCvModal={setShowCvModal} />}
       </div>
 
       {showAddModal && <AddAppModal  {...sp} form={form} setForm={setForm} handleSave={handleSave} onClose={() => setShowAddModal(false)} />}
-      {showGoalModal && <GoalModal    {...sp} weeklyGoal={weeklyGoal} thisWeekApps={thisWeekApps} onSave={(g) => { setWeeklyGoal(g); setShowGoalModal(false); notify(`Goal set to ${g}/week`); }} onClose={() => setShowGoalModal(false)} />}
-      {showCvModal && <AddCvModal   {...sp} cvBeingAdded={cvBeingAdded} setCvBeingAdded={setCvBeingAdded} handlePdfUpload={handlePdfUpload} saveCv={saveCv} onClose={() => { setShowCvModal(false); setCvBeingAdded({ name: "", base64: null, fileName: null }); }} />}
+      {showGoalModal && <GoalModal    {...sp} weeklyGoal={weeklyGoal} thisWeekApps={thisWeekApps} onSave={(g) => { saveWeeklyGoal(g); setShowGoalModal(false); }} onClose={() => setShowGoalModal(false)} />}
+      {showCvModal && <AddCvModal   {...sp} cvBeingAdded={cvBeingAdded} setCvBeingAdded={setCvBeingAdded} handlePdfUpload={handlePdfUpload} saveCv={handleSaveCv} onClose={() => { setShowCvModal(false); setCvBeingAdded({ name: "", base64: null, fileName: null }); }} />}
     </div>
   );
 }
