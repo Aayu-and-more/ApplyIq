@@ -131,11 +131,11 @@ export default async function handler(req, res) {
 Now rewrite the resume tracking all constraints strictly.
 
 <resume_text>
-\${cleanResumeText}
+${cleanResumeText}
 </resume_text>
 
 <job_description>
-\${jobDescription}
+${jobDescription}
 </job_description>`
           }],
         }],
@@ -235,11 +235,11 @@ Now rewrite the resume tracking all constraints strictly.
 Now rewrite the resume tracking all constraints strictly.
 
 <resume_text>
-\${cleanResumeText}
+${cleanResumeText}
 </resume_text>
 
 <job_description>
-\${jobDescription}
+${jobDescription}
 </job_description>`
               }],
             }],
