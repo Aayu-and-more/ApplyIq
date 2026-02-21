@@ -442,7 +442,14 @@ const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, de
 
       <div style={{ ...S.card, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <div style={S.cardTitle}>ATS-Optimised Resume Output</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ ...S.cardTitle, marginBottom: 0 }}>ATS-Optimised Resume Output</div>
+            {atsScore && (
+              <div style={{ background: "#10b98120", color: "#10b981", padding: "4px 8px", borderRadius: 6, fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon name="target" size={14} /> ATS Score: {atsScore}/100
+              </div>
+            )}
+          </div>
 
           {resumeOutput && (
             <div style={{ display: "flex", gap: 8 }}>
@@ -607,6 +614,7 @@ export default function ApplyIQ() {
   const [selectedCvId, setSelectedCvId] = useState(null);
   const [resumeJD, setResumeJD] = useState("");
   const [resumeOutput, setResumeOutput] = useState("");
+  const [atsScore, setAtsScore] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [cvBeingAdded, setCvBeingAdded] = useState({ name: "", base64: null, fileName: null });
   const [copySuccess, setCopySuccess] = useState(false);
@@ -702,7 +710,17 @@ export default function ApplyIQ() {
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setResumeOutput(data.result);
+
+      let finalResult = data.result;
+      const scoreMatch = finalResult.match(/\[ATS_SCORE:\s*(\d+)\]/i);
+      if (scoreMatch) {
+        setAtsScore(scoreMatch[1]);
+        finalResult = finalResult.replace(scoreMatch[0], '').trim();
+      } else {
+        setAtsScore(null);
+      }
+
+      setResumeOutput(finalResult);
       notify("Resume optimised!");
     } catch (err) {
       setResumeOutput(`⚠️ Error: ${err.message}\n\nMake sure ANTHROPIC_API_KEY is set in Vercel environment variables.`);

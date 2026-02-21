@@ -112,9 +112,10 @@ export default async function handler(req, res) {
 5. EDUCATION SECTION: Heading "EDUCATION". Format: Degree Name, Major | University Name | Location | Date. NEXT LINE: Search the <resume_text> for university modules and explicitly list the 4-6 most relevant modules tailored to the <job_description>.
 6. EXPERIENCE SECTION: Heading "EXPERIENCE". List experiences in REVERSE-CHRONOLOGICAL order (most recent first). Format: [EXACT Company Name from resume] - [EXACT Job Title from resume] | Location | Date. STRICTLY EXACTLY 3 BULLET POINTS per role, no more, no less, each starting with "•". DO NOT re-word the companies.
 7. LICENSES & CERTIFICATIONS SECTION: Heading "LICENSES & CERTIFICATIONS". Format: Certification Name on line 1, Issuing Organization on line 2.
-8. SKILLS SECTION: Heading "SKILLS". Group strongly into categories (e.g., Technical Skills:, Soft Skills:, Tools/Software:). Use a colon after the category name and commas to separate items.
+8. SKILLS SECTION: Heading "SKILLS". You MUST create EXACTLY two categories: "Technical Skills:" and "Soft Skills:". Group the extracted skills perfectly into these two categories. Use a colon after the category name and commas to separate items. Do not add any other skill categories.
 9. SPACING: Single line break between sections.
 10. NO markdown formatting (no **bold**, no _italic_, no # headers).
+11. ATS SCORE: At the very end of your final output, after the skills section, evaluate how well the new resume matches the job description and output an ATS score out of 100. Format EXACTLY as: [ATS_SCORE: 92]
 </formatting_rules>
 
 Now rewrite the resume tracking all constraints strictly.
@@ -205,9 +206,10 @@ ${jobDescription}
 5. EDUCATION SECTION: Heading "EDUCATION". Format: Degree Name, Major | University Name | Location | Date. NEXT LINE: Search the <resume_text> for university modules and explicitly list the 4-6 most relevant modules tailored to the <job_description>.
 6. EXPERIENCE SECTION: Heading "EXPERIENCE". List experiences in REVERSE-CHRONOLOGICAL order (most recent first). Format: Company Name - Job Title | Location | Date. STRICTLY EXACTLY 3 BULLET POINTS per role, no more, no less, each starting with "•".
 7. LICENSES & CERTIFICATIONS SECTION: Heading "LICENSES & CERTIFICATIONS". Format: Certification Name on line 1, Issuing Organization on line 2.
-8. SKILLS SECTION: Heading "SKILLS". Group strongly into categories (e.g., Technical Skills:, Soft Skills:, Tools/Software:). Use a colon after the category name and commas to separate items.
+8. SKILLS SECTION: Heading "SKILLS". You MUST create EXACTLY two categories: "Technical Skills:" and "Soft Skills:". Group the extracted skills perfectly into these two categories. Use a colon after the category name and commas to separate items. Do not add any other skill categories.
 9. SPACING: Single line break between sections.
 10. NO markdown formatting (no **bold**, no _italic_, no # headers).
+11. ATS SCORE: At the very end of your final output, after the skills section, evaluate how well the new resume matches the job description and output an ATS score out of 100. Format EXACTLY as: [ATS_SCORE: 92]
 </formatting_rules>
 
 Now rewrite the resume tracking all constraints strictly.
