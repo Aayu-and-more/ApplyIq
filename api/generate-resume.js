@@ -1,24 +1,39 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
+// Polyfill DOMMatrix for Node.js environment (needed by pdf-parse v2)
+if (typeof global !== 'undefined' && typeof global.DOMMatrix === 'undefined') {
+  global.DOMMatrix = class DOMMatrix {
+    constructor(init) {
+      if (init && init.length === 6) {
+        this.a = init[0]; this.b = init[1]; this.c = init[2];
+        this.d = init[3]; this.e = init[4]; this.f = init[5];
+      } else {
+        this.a = 1; this.b = 0; this.c = 0;
+        this.d = 1; this.e = 0; this.f = 0;
+      }
+    }
+  };
+}
+
 // Lazy-load pdf-parse to avoid module initialization errors
 // pdf-parse v2.4.5 exports PDFParse as a class, not a function
 function getPdfParseClass() {
   try {
     const pdfLib = require('pdf-parse');
-    
+
     // pdf-parse v2 exports PDFParse as a named export (class)
     if (pdfLib?.PDFParse && typeof pdfLib.PDFParse === 'function') {
       return pdfLib.PDFParse;
     }
-    
+
     // Fallback: check for default export (for older versions or different builds)
     if (typeof pdfLib === 'function') {
       return pdfLib;
     } else if (pdfLib?.default && typeof pdfLib.default === 'function') {
       return pdfLib.default;
     }
-    
+
     throw new Error(`PDFParse class not found. Available keys: ${Object.keys(pdfLib || {}).join(', ')}`);
   } catch (err) {
     console.error('Failed to load pdf-parse:', err.message);
@@ -48,56 +63,56 @@ export default async function handler(req, res) {
   try {
     // Sanitize Base64 input
     let cleanBase64 = String(cvBase64);
-    
+
     // Remove data URI prefix (e.g., "data:application/pdf;base64,")
     if (cleanBase64.includes(',')) {
       cleanBase64 = cleanBase64.split(',')[1];
     }
-    
+
     // Remove all whitespace (spaces, newlines, tabs)
     cleanBase64 = cleanBase64.replace(/\s/g, '');
-    
+
     // Validate Base64 format
     if (!cleanBase64 || cleanBase64.length === 0) {
       throw new Error('Invalid Base64 string: empty after sanitization');
     }
-    
+
     // Create Buffer from sanitized Base64
     const pdfBuffer = Buffer.from(cleanBase64, 'base64');
-    
+
     if (pdfBuffer.length === 0) {
       throw new Error('Failed to create PDF buffer: buffer is empty');
     }
-    
+
     console.log(`Processing PDF buffer (${pdfBuffer.length} bytes)...`);
-    
+
     // Get PDFParse class (lazy-loaded)
     const PDFParse = getPdfParseClass();
     if (typeof PDFParse !== 'function') {
       throw new Error('PDFParse class not found');
     }
-    
+
     // Parse PDF using v2 API: new PDFParse({ data: buffer })
     const parser = new PDFParse({ data: pdfBuffer });
     const pdfData = await parser.getText();
-    
+
     if (!pdfData || !pdfData.text) {
       throw new Error('PDF parsing failed: no text extracted');
     }
-    
+
     // Clean up extracted text (normalize whitespace)
     const cleanResumeText = pdfData.text
       .replace(/\r\n/g, '\n')  // Normalize line endings
       .replace(/\r/g, '\n')     // Handle old Mac line endings
       .replace(/\n{3,}/g, '\n\n') // Collapse multiple newlines
       .trim();
-    
+
     if (!cleanResumeText || cleanResumeText.length === 0) {
       throw new Error('PDF appears to be empty or unreadable');
     }
-    
+
     console.log(`PDF parsed successfully. Extracted ${cleanResumeText.length} characters.`);
-    
+
     // Clean up parser instance
     await parser.destroy();
 
@@ -201,7 +216,7 @@ ${jobDescription}`
       } catch {
         errorData = { error: { message: errorText } };
       }
-      
+
       // If model not found, try with Haiku as fallback
       if (response.status === 404 && errorData.error?.message?.includes('model')) {
         console.log('Model not found, retrying with Claude 3 Haiku...');
@@ -295,7 +310,7 @@ ${jobDescription}`
             }],
           }),
         });
-        
+
         if (fallbackResponse.ok) {
           const fallbackData = await fallbackResponse.json();
           if (!fallbackData.error) {
@@ -307,7 +322,7 @@ ${jobDescription}`
           }
         }
       }
-      
+
       throw new Error(`Anthropic API error (${response.status}): ${errorText}`);
     }
 
