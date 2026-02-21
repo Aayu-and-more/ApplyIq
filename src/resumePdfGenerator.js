@@ -109,49 +109,77 @@ export function generateAtsResumePdf(claudeOutput, candidateName = "AAYUSH MORE"
     // ═══════════════════════════════════════════════════════════════════════
     // EDUCATION
     // ═══════════════════════════════════════════════════════════════════════
-    if (y > pageHeight - 30) {
-      doc.addPage();
-      y = margin;
-    }
+    if (parsed.education && parsed.education.length > 0) {
+      if (y > pageHeight - 30) {
+        doc.addPage();
+        y = margin;
+      }
 
-    y = addSection(doc, "EDUCATION", y, margin, contentWidth);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("National College of Ireland", margin, y);
-    y += 5;
-    doc.setFontSize(9.5);
-    doc.setFont("helvetica", "normal");
-    doc.text("MSc Finance", margin, y);
-    y += 8;
+      y = addSection(doc, "EDUCATION", y, margin, contentWidth);
+      doc.setFontSize(10);
+
+      parsed.education.forEach((edu) => {
+        // Degree, Major | University | Location
+        doc.setFont("helvetica", "bold");
+        const titleText = doc.splitTextToSize(edu.title, contentWidth - 40);
+        doc.text(titleText, margin, y);
+
+        // Date Right Aligned
+        if (edu.date) {
+          doc.setFont("helvetica", "normal");
+          doc.text(edu.date, pageWidth - margin, y, { align: "right" });
+        }
+
+        y += (titleText.length * 4.5);
+
+        // Details (e.g. GPA, Honors)
+        if (edu.details && edu.details.length > 0) {
+          doc.setFontSize(9.5);
+          doc.setFont("helvetica", "normal");
+          edu.details.forEach(detail => {
+            const detailLines = doc.splitTextToSize(detail, contentWidth);
+            detailLines.forEach(line => {
+              doc.text(line, margin, y);
+              y += 4.5;
+            });
+          });
+        }
+        y += 2;
+      });
+      y += 1;
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // LICENSES & CERTIFICATIONS
     // ═══════════════════════════════════════════════════════════════════════
-    if (y > pageHeight - 35) {
-      doc.addPage();
-      y = margin;
+    if (parsed.certifications && parsed.certifications.length > 0) {
+      if (y > pageHeight - 35) {
+        doc.addPage();
+        y = margin;
+      }
+
+      y = addSection(doc, "LICENSES & CERTIFICATIONS", y, margin, contentWidth);
+
+      parsed.certifications.forEach(cert => {
+        if (y > pageHeight - 15) {
+          doc.addPage();
+          y = margin;
+        }
+
+        doc.setFontSize(9.5);
+        doc.setFont("helvetica", "bolditalic");
+        doc.text(cert.name, margin, y);
+        y += 4.5;
+
+        if (cert.issuer) {
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "italic");
+          doc.text(cert.issuer, margin, y);
+          y += 5;
+        }
+      });
+      y += 1;
     }
-
-    y = addSection(doc, "LICENSES & CERTIFICATIONS", y, margin, contentWidth);
-    const certs = [
-      "Bloomberg Market Concepts (BMC)",
-      "Bloomberg ESG Certification",
-      "Bloomberg Finance Fundamentals",
-      "Bloomberg Excel for Financial Analysis"
-    ];
-
-    certs.forEach(cert => {
-      doc.setFontSize(9.5);
-      doc.setFont("helvetica", "bolditalic");
-      doc.text(cert, margin, y);
-      y += 4.5;
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "italic");
-      doc.text("Bloomberg Education  •", margin, y);
-      y += 6;
-    });
-    y += 1;
 
     // ═══════════════════════════════════════════════════════════════════════
     // SKILLS
@@ -221,7 +249,9 @@ function parseClaudeOutput(output) {
   const sections = {
     summary: "",
     skills: [],
-    experience: []
+    experience: [],
+    education: [],
+    certifications: []
   };
 
   try {
@@ -322,6 +352,65 @@ function parseClaudeOutput(output) {
         }
       }
       if (currentJob && currentJob.bullets.length > 0) sections.experience.push(currentJob);
+    }
+
+    // --- 4. Extract Education ---
+    const eduSectionMatch = text.match(/\bEDUCATION\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\bLICENSES & CERTIFICATIONS\b|\bSKILLS\b|\bEXPERIENCE\b|$)/i);
+    if (eduSectionMatch && eduSectionMatch[1]) {
+      const eduLines = eduSectionMatch[1].split('\n').map(l => l.trim()).filter(Boolean);
+      let currentEdu = null;
+
+      for (let i = 0; i < eduLines.length; i++) {
+        let line = eduLines[i].replace(/\*\*/g, '');
+        if (lineIsHeader(line) || /^_{3,}$/.test(line)) continue;
+
+        // If the line has a bar | it's probably the title line
+        if (line.includes('|')) {
+          const dateRegex = /(?:\[|\b| )((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2})\/?\s*[0-9]{4}\s*[-–]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2}\/?\s*[0-9]{4}|Present)|[0-9]{4})(?:\s*\])?$/i;
+          const dMatch = line.match(dateRegex);
+          let dateStr = "";
+          if (dMatch) {
+            dateStr = dMatch[1].trim();
+            line = line.replace(dMatch[0], '').trim();
+          }
+
+          if (currentEdu) sections.education.push(currentEdu);
+          currentEdu = {
+            title: line,
+            date: dateStr,
+            details: []
+          };
+        } else if (currentEdu) {
+          // Additional details like GPA or honors
+          currentEdu.details.push(line);
+        } else {
+          // Fallback if there is no | line (non-standard formatting)
+          currentEdu = { title: line, date: "", details: [] };
+        }
+      }
+      if (currentEdu) sections.education.push(currentEdu);
+    }
+
+    // --- 5. Extract Certifications ---
+    const certSectionMatch = text.match(/\b(?:LICENSES & CERTIFICATIONS|CERTIFICATIONS)\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\bSKILLS\b|\bEDUCATION\b|$)/i);
+    if (certSectionMatch && certSectionMatch[1]) {
+      const certLines = certSectionMatch[1].split('\n').map(l => l.trim().replace(/\*\*/g, '')).filter(Boolean);
+      let currentCert = null;
+
+      for (let i = 0; i < certLines.length; i++) {
+        let line = certLines[i];
+        if (lineIsHeader(line) || /^_{3,}$/.test(line)) continue;
+
+        // Assume the first line is name, second is issuer
+        if (!currentCert) {
+          currentCert = { name: line.replace(/^[•\-]\s*/, ''), issuer: "" };
+        } else {
+          currentCert.issuer = line.replace(/^[•\-]\s*/, '');
+          sections.certifications.push(currentCert);
+          currentCert = null;
+        }
+      }
+      if (currentCert) sections.certifications.push(currentCert);
     }
 
     // Fallback if regex parsing completely failed but we have output

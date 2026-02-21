@@ -85,15 +85,17 @@ export default async function handler(req, res) {
           role: "user",
           content: [{
             type: "text",
-            text: `You are an expert ATS (Applicant Tracking System) resume optimizer specializing in Harvard-style resume formatting. Your task is to rewrite the resume to maximize ATS compatibility while maintaining professional Harvard-style formatting.
+            text: `You are an expert ATS (Applicant Tracking System) resume optimizer specializing in Harvard-style resume formatting. Your task is to rewrite the provided resume to maximize ATS compatibility while maintaining professional Harvard-style formatting.
 
-CRITICAL ATS OPTIMIZATION REQUIREMENTS:
-1. Extract ALL keywords from the job description and naturally integrate them throughout the resume
-2. Match job requirements with specific achievements and quantifiable results
-3. Use industry-standard terminology and action verbs
-4. Ensure skills mentioned in job description appear in both Skills section AND experience bullets
-5. Include relevant certifications, tools, and technologies from job description
-6. Optimize for ATS parsing while maintaining readability
+CRITICAL CONSTRAINTS - YOU MUST FOLLOW THESE:
+1. STRICT LENGTH LIMIT: The output MUST fit on a single page. Be extremely concise.
+2. BULLET LIMIT: Each experience role MUST HAVE A MAXIMUM OF 3-4 BULLET POINTS. Only include the absolute most impressive, quantifiable achievements relevant to the job description. Do not include basic responsibilities.
+3. DYNAMIC CONTENT: DO NOT invent or assume any information. Extract ALL Education, Certifications, and Experience exclusively from the provided RESUME TEXT.
+
+ATS OPTIMIZATION REQUIREMENTS:
+1. Extract keywords from the job description and naturally integrate them.
+2. Match job requirements with specific achievements and quantifiable results.
+3. Include relevant skills, certifications, and technologies from the job description if the candidate possesses them.
 
 HARVARD-STYLE FORMATTING RULES:
 1. CANDIDATE NAME: Centered, full name only (no titles)
@@ -102,21 +104,21 @@ HARVARD-STYLE FORMATTING RULES:
 4. EXPERIENCE SECTION:
    - Format: Job Title | Company Name | Location
    - Dates: Right-aligned (e.g., "MM/YYYY - MM/YYYY" or "MM/YYYY - Present")
-   - 3-5 bullet points per role, each starting with "•"
+   - STRICTLY 3-4 bullet points per role max, each starting with "•"
    - Use strong action verbs (Led, Developed, Implemented, Achieved, etc.)
    - Include quantifiable metrics (percentages, dollar amounts, team sizes, etc.)
-   - Focus on achievements, not just responsibilities
 5. EDUCATION SECTION:
+   - Extract from base resume.
    - Format: Degree Name, Major | University Name | Location
    - Dates: Right-aligned
-   - Include GPA if 3.5+ (optional)
-   - Include relevant coursework if recent graduate
-6. SKILLS SECTION:
+6. LICENSES & CERTIFICATIONS SECTION:
+   - Extract from base resume (if any).
+   - Format: Certification Name
+   - Issuing Organization
+7. SKILLS SECTION:
    - Group by category: Technical Skills, Software/Tools, Certifications
    - Use commas to separate items within categories
    - Prioritize skills mentioned in job description
-7. ADDITIONAL SECTIONS (if applicable):
-   - CERTIFICATIONS, PROJECTS, AWARDS, PUBLICATIONS (if relevant)
 8. SPACING: Single line break between sections, double line break before major sections
 9. NO markdown formatting (no **bold**, no _italic_, no # headers)
 10. Use consistent date format throughout
@@ -125,17 +127,23 @@ OUTPUT FORMAT EXAMPLE:
 [Full Name]
 [Email] | [Phone] | [LinkedIn] | [City, State]
 
+SUMMARY
+________________________________________________________________________________
+
+[2-3 sentence highly targeted professional summary focusing on the exact value brought to the target role.]
+
 EXPERIENCE
 ________________________________________________________________________________
 
 [Job Title] | [Company Name] | [City, State]                                    [MM/YYYY - MM/YYYY]
-• [Achievement-focused bullet with metrics and keywords]
-• [Another achievement bullet]
-• [Third achievement bullet]
+• [Achievement-focused bullet 1]
+• [Achievement-focused bullet 2]
+• [Achievement-focused bullet 3]
 
 [Previous Job Title] | [Company Name] | [City, State]                            [MM/YYYY - MM/YYYY]
-• [Achievement bullet]
-• [Achievement bullet]
+• [Achievement bullet 1]
+• [Achievement bullet 2]
+• [Achievement bullet 3]
 
 EDUCATION
 ________________________________________________________________________________
@@ -143,20 +151,25 @@ ________________________________________________________________________________
 [Degree], [Major] | [University Name] | [City, State]                           [MM/YYYY]
 [Relevant coursework or honors if applicable]
 
+LICENSES & CERTIFICATIONS
+________________________________________________________________________________
+
+[Certification Name]
+[Issuing Organization]
+
 SKILLS
 ________________________________________________________________________________
 
-Technical Skills: [Keyword 1], [Keyword 2], [Keyword 3], [Keyword 4]
-Software/Tools: [Tool 1], [Tool 2], [Tool 3]
-Certifications: [Cert 1], [Cert 2]
+Technical Skills: [Keyword 1], [Keyword 2]
+Software/Tools: [Tool 1], [Tool 2]
 
 Now rewrite the resume below following these exact formatting rules and ATS optimization requirements:
 
 RESUME TEXT:
-${cleanResumeText}
+\${cleanResumeText}
 
 JOB DESCRIPTION:
-${jobDescription}`
+\${jobDescription}`
           }],
         }],
       }),
@@ -209,15 +222,17 @@ ${jobDescription}`
               role: "user",
               content: [{
                 type: "text",
-                text: `You are an expert ATS (Applicant Tracking System) resume optimizer specializing in Harvard-style resume formatting. Your task is to rewrite the resume to maximize ATS compatibility while maintaining professional Harvard-style formatting.
+                text: `You are an expert ATS (Applicant Tracking System) resume optimizer specializing in Harvard-style resume formatting. Your task is to rewrite the provided resume to maximize ATS compatibility while maintaining professional Harvard-style formatting.
 
-CRITICAL ATS OPTIMIZATION REQUIREMENTS:
-1. Extract ALL keywords from the job description and naturally integrate them throughout the resume
-2. Match job requirements with specific achievements and quantifiable results
-3. Use industry-standard terminology and action verbs
-4. Ensure skills mentioned in job description appear in both Skills section AND experience bullets
-5. Include relevant certifications, tools, and technologies from job description
-6. Optimize for ATS parsing while maintaining readability
+CRITICAL CONSTRAINTS - YOU MUST FOLLOW THESE:
+1. STRICT LENGTH LIMIT: The output MUST fit on a single page. Be extremely concise.
+2. BULLET LIMIT: Each experience role MUST HAVE A MAXIMUM OF 3-4 BULLET POINTS. Only include the absolute most impressive, quantifiable achievements relevant to the job description. Do not include basic responsibilities.
+3. DYNAMIC CONTENT: DO NOT invent or assume any information. Extract ALL Education, Certifications, and Experience exclusively from the provided RESUME TEXT.
+
+ATS OPTIMIZATION REQUIREMENTS:
+1. Extract keywords from the job description and naturally integrate them.
+2. Match job requirements with specific achievements and quantifiable results.
+3. Include relevant skills, certifications, and technologies from the job description if the candidate possesses them.
 
 HARVARD-STYLE FORMATTING RULES:
 1. CANDIDATE NAME: Centered, full name only (no titles)
@@ -226,21 +241,21 @@ HARVARD-STYLE FORMATTING RULES:
 4. EXPERIENCE SECTION:
    - Format: Job Title | Company Name | Location
    - Dates: Right-aligned (e.g., "MM/YYYY - MM/YYYY" or "MM/YYYY - Present")
-   - 3-5 bullet points per role, each starting with "•"
+   - STRICTLY 3-4 bullet points per role max, each starting with "•"
    - Use strong action verbs (Led, Developed, Implemented, Achieved, etc.)
    - Include quantifiable metrics (percentages, dollar amounts, team sizes, etc.)
-   - Focus on achievements, not just responsibilities
 5. EDUCATION SECTION:
+   - Extract from base resume.
    - Format: Degree Name, Major | University Name | Location
    - Dates: Right-aligned
-   - Include GPA if 3.5+ (optional)
-   - Include relevant coursework if recent graduate
-6. SKILLS SECTION:
+6. LICENSES & CERTIFICATIONS SECTION:
+   - Extract from base resume (if any).
+   - Format: Certification Name
+   - Issuing Organization
+7. SKILLS SECTION:
    - Group by category: Technical Skills, Software/Tools, Certifications
    - Use commas to separate items within categories
    - Prioritize skills mentioned in job description
-7. ADDITIONAL SECTIONS (if applicable):
-   - CERTIFICATIONS, PROJECTS, AWARDS, PUBLICATIONS (if relevant)
 8. SPACING: Single line break between sections, double line break before major sections
 9. NO markdown formatting (no **bold**, no _italic_, no # headers)
 10. Use consistent date format throughout
@@ -249,17 +264,23 @@ OUTPUT FORMAT EXAMPLE:
 [Full Name]
 [Email] | [Phone] | [LinkedIn] | [City, State]
 
+SUMMARY
+________________________________________________________________________________
+
+[2-3 sentence highly targeted professional summary focusing on the exact value brought to the target role.]
+
 EXPERIENCE
 ________________________________________________________________________________
 
 [Job Title] | [Company Name] | [City, State]                                    [MM/YYYY - MM/YYYY]
-• [Achievement-focused bullet with metrics and keywords]
-• [Another achievement bullet]
-• [Third achievement bullet]
+• [Achievement-focused bullet 1]
+• [Achievement-focused bullet 2]
+• [Achievement-focused bullet 3]
 
 [Previous Job Title] | [Company Name] | [City, State]                            [MM/YYYY - MM/YYYY]
-• [Achievement bullet]
-• [Achievement bullet]
+• [Achievement bullet 1]
+• [Achievement bullet 2]
+• [Achievement bullet 3]
 
 EDUCATION
 ________________________________________________________________________________
@@ -267,20 +288,25 @@ ________________________________________________________________________________
 [Degree], [Major] | [University Name] | [City, State]                           [MM/YYYY]
 [Relevant coursework or honors if applicable]
 
+LICENSES & CERTIFICATIONS
+________________________________________________________________________________
+
+[Certification Name]
+[Issuing Organization]
+
 SKILLS
 ________________________________________________________________________________
 
-Technical Skills: [Keyword 1], [Keyword 2], [Keyword 3], [Keyword 4]
-Software/Tools: [Tool 1], [Tool 2], [Tool 3]
-Certifications: [Cert 1], [Cert 2]
+Technical Skills: [Keyword 1], [Keyword 2]
+Software/Tools: [Tool 1], [Tool 2]
 
 Now rewrite the resume below following these exact formatting rules and ATS optimization requirements:
 
 RESUME TEXT:
-${cleanResumeText}
+\${cleanResumeText}
 
 JOB DESCRIPTION:
-${jobDescription}`
+\${jobDescription}`
               }],
             }],
           }),
