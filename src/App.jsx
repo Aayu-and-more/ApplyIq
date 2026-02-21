@@ -383,7 +383,7 @@ const AnalyticsView = ({ apps, staleApps, responseRate, interviewRate, offerCoun
   );
 };
 
-const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, deleteCv, resumeJD, setResumeJD, resumeOutput, isGenerating, handleGenerateResume, handleCopy, handleDownloadPdf, copySuccess, setShowCvModal, t, S }) => {
+const ResumeView = ({ cvLibrary, selectedCvId, setSelectedCvId, setDefaultCv, deleteCv, resumeJD, setResumeJD, resumeOutput, atsScore, isGenerating, handleGenerateResume, handleCopy, handleDownloadPdf, copySuccess, setShowCvModal, t, S }) => {
   const activeCv = cvLibrary.find(c => c.id === selectedCvId) || cvLibrary.find(c => c.isDefault);
   return (
     <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 16, height: "calc(100vh - 148px)" }}>
@@ -799,7 +799,7 @@ export default function ApplyIQ() {
         {view === "kanban" && <KanbanView       {...sp} apps={apps} handleKanbanDrop={handleKanbanDrop} />}
         {view === "applications" && <ApplicationsView {...sp} filteredApps={filteredApps} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleEdit={handleEdit} handleDelete={handleDelete} setShowAddModal={setShowAddModal} exportCSV={exportCSV} />}
         {view === "analytics" && <AnalyticsView    {...sp} apps={apps} staleApps={staleApps} responseRate={responseRate} interviewRate={interviewRate} offerCount={offerCount} />}
-        {view === "resume" && <ResumeView       {...sp} cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setDefaultCv={setDefaultCv} deleteCv={deleteCv} resumeJD={resumeJD} setResumeJD={setResumeJD} resumeOutput={resumeOutput} isGenerating={isGenerating} handleGenerateResume={handleGenerateResume} handleCopy={handleCopy} handleDownloadPdf={handleDownloadPdf} copySuccess={copySuccess} setShowCvModal={setShowCvModal} />}
+        {view === "resume" && <ResumeView       {...sp} cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setDefaultCv={setDefaultCv} deleteCv={deleteCv} resumeJD={resumeJD} setResumeJD={setResumeJD} resumeOutput={resumeOutput} atsScore={atsScore} isGenerating={isGenerating} handleGenerateResume={handleGenerateResume} handleCopy={handleCopy} handleDownloadPdf={handleDownloadPdf} copySuccess={copySuccess} setShowCvModal={setShowCvModal} />}
       </div>
 
       {showAddModal && <AddAppModal  {...sp} form={form} setForm={setForm} handleSave={handleSave} onClose={() => setShowAddModal(false)} />}
