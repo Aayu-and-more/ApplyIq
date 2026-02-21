@@ -2,6 +2,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
 const pdfParse = require('pdf-parse');
+require('dotenv').config({ path: '.env.local' });
 
 export default async function handler(req, res) {
   // Block anything that isn't a POST request
@@ -16,8 +17,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing cvBase64 or jobDescription" });
   }
 
-  // Check if API Key is configured in Vercel
-  if (!process.env.ANTHROPIC_API_KEY) {
+  // Check if API Key is configured in Vercel or locally
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
+  if (!apiKey) {
     console.error("Missing ANTHROPIC_API_KEY environment variable");
     return res.status(500).json({ error: "Server Error: API Key not configured." });
   }
@@ -169,7 +171,7 @@ ${jobDescription}
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-api-key": process.env.ANTHROPIC_API_KEY,
+            "x-api-key": apiKey,
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
