@@ -260,178 +260,103 @@ function parseClaudeOutput(output) {
   };
 
   try {
-    // A robust, fallback-heavy parser since LLM output formatting varies.
     const text = output || "";
+    const lines = text.split('\n').map(l => l.trim().replace(/[*_]/g, '')).filter(Boolean);
 
-    // --- 1. Extract Summary ---
-    // Look for anything before the other sections
-    const expIndex = text.search(/\bEXPERIENCE\b/i);
-    const summaryMatch = text.match(/(?:SUMMARY|PROFESSIONAL SUMMARY|OPTIMISED PROFESSIONAL SUMMARY)\s*_{0,}\s*([\s\S]*?)(?=\b(?:EXPERIENCE|EDUCATION|LICENSES & CERTIFICATIONS|CERTIFICATIONS|SKILLS)\b|$)/i);
+    let currentSection = 'UNKNOWN';
 
-    if (summaryMatch && summaryMatch[1]) {
-      // Clean up lines like "[Full Name]" or "[Email] | ..." that might be caught at the top
-      let sText = summaryMatch[1]
-        .split('\n')
-        .filter(l => l.trim().length > 0)
-        .filter(l => !l.includes("[Full Name]") && !l.includes("| ") && !l.includes("•") && !lineIsHeader(l))
-        .join(' ')
-        .replace(/\*\*/g, '')
-        .trim();
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+      if (/^_{2,}$/.test(line)) continue;
+      if (line.includes('[Full Name]') || line.includes('[Email]') || line.includes('[City, State]')) continue;
 
-      if (sText.length > 50) sections.summary = sText;
-    }
+      let upperLine = line.toUpperCase();
 
-    // --- 2. Extract Skills ---
-    // Look for SKILLS section at the bottom
-    const skillsMatch = text.match(/\bSKILLS\b[\s\S]*?_{0,}\s*([\s\S]*?)$/i);
-    if (skillsMatch && skillsMatch[1]) {
-      const sText = skillsMatch[1];
-      const items = [];
-      sText.split('\n').forEach(line => {
-        const t = line.trim().replace(/\*\*/g, '');
-        if (!t || lineIsHeader(t)) return;
+      if (upperLine === 'SUMMARY' || upperLine.includes('SUMMARY SECTION') || upperLine.includes('PROFESSIONAL SUMMARY')) { currentSection = 'SUMMARY'; continue; }
+      if (upperLine === 'EXPERIENCE' || upperLine.includes('PROFESSIONAL EXPERIENCE') || upperLine.includes('WORK EXPERIENCE')) { currentSection = 'EXPERIENCE'; continue; }
+      if (upperLine === 'EDUCATION' || upperLine.includes('ACADEMIC BACKGROUND')) { currentSection = 'EDUCATION'; continue; }
+      if (upperLine.includes('LICENSES') || upperLine.includes('CERTIFICATIONS') || upperLine === 'CERTIFICATES') { currentSection = 'CERTIFICATIONS'; continue; }
+      if (upperLine === 'SKILLS' || upperLine.includes('CORE COMPETENCIES')) { currentSection = 'SKILLS'; continue; }
 
-        // Handle "Technical Skills: A, B, C" or just bullet points
-        if (t.includes(':')) {
-          const parts = t.split(':')[1].split(',');
-          parts.forEach(p => items.push(p.trim()));
-        } else if (t.startsWith('•') || t.startsWith('-')) {
-          items.push(t.substring(1).trim());
-        } else if (t.includes(',')) {
-          t.split(',').forEach(p => items.push(p.trim()));
-        } else {
-          items.push(t);
-        }
-      });
-      sections.skills = items.filter(Boolean).slice(0, 18);
-    }
+      if (upperLine === 'AAYUSH MORE' || line.includes('@')) continue; // Skip header garbage
 
-    // --- 3. Extract Experience ---
-    // Extract everything between EXPERIENCE and the next section
-    const expSectionMatch = text.match(/\bEXPERIENCE\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\b(?:EDUCATION|LICENSES & CERTIFICATIONS|CERTIFICATIONS|SKILLS|SUMMARY)\b|$)/i);
+      const isBullet = /^[•\-\*]\s+/.test(line) || line.startsWith('•') || line.startsWith('-') || line.startsWith('*');
+      const cleanLine = line.replace(/^[•\-\*]\s*/, '').trim();
 
-    if (expSectionMatch && expSectionMatch[1]) {
-      const expLines = expSectionMatch[1].split('\n').map(l => l.trim()).filter(Boolean);
-      let currentJob = null;
-
-      for (let i = 0; i < expLines.length; i++) {
-        let line = expLines[i].replace(/\*\*/g, '');
-
-        if (lineIsHeader(line) || /^_{3,}$/.test(line)) continue;
-
-        // If it starts with a bullet, add to current job
-        if (line.startsWith('•') || line.startsWith('-')) {
-          if (currentJob) {
-            currentJob.bullets.push(line.substring(1).trim());
-          }
-          continue;
-        }
-
-        // Must be a title line. Check if it looks like: Title | Company | Location  [Date]
-        if (line.includes('|') || line.length > 15) {
-          // Extract date from the end of the line if it exists
-          let dateStr = "";
-          // Matches mm/yyyy - mm/yyyy or Date - Present at the end of the string, optionally in brackets
-          const dateRegex = /(?:\[|\b| )((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2})\/?\s*[0-9]{4}\s*[-–]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2}\/?\s*[0-9]{4}|Present))(?:\s*\])?$/i;
-
-          const dMatch = line.match(dateRegex);
-          if (dMatch) {
-            dateStr = dMatch[1].trim();
-            // Remove the date from the title line
-            line = line.replace(dMatch[0], '').trim();
-          }
-
-          // Only start a new job if we don't already have one with no bullets, 
-          // to avoid tearing apart multi-line titles
-          if (currentJob && currentJob.bullets.length === 0) {
-            currentJob.title += ", " + line.replace(/\|/g, ',').trim();
-            if (!currentJob.date && dateStr) currentJob.date = dateStr;
-          } else {
-            if (currentJob) sections.experience.push(currentJob);
-            currentJob = {
-              title: line.replace(/\|/g, ',').trim(),
-              date: dateStr,
-              bullets: []
-            };
-          }
-        }
+      if (currentSection === 'SUMMARY') {
+        sections.summary += (sections.summary ? " " : "") + cleanLine;
       }
-      if (currentJob && currentJob.bullets.length > 0) sections.experience.push(currentJob);
-    }
-
-    // --- 4. Extract Education ---
-    const eduSectionMatch = text.match(/\bEDUCATION\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\b(?:EXPERIENCE|LICENSES & CERTIFICATIONS|CERTIFICATIONS|SKILLS|SUMMARY)\b|$)/i);
-    if (eduSectionMatch && eduSectionMatch[1]) {
-      const eduLines = eduSectionMatch[1].split('\n').map(l => l.trim()).filter(Boolean);
-      let currentEdu = null;
-
-      for (let i = 0; i < eduLines.length; i++) {
-        let line = eduLines[i].replace(/\*\*/g, '');
-        if (lineIsHeader(line) || /^_{3,}$/.test(line)) continue;
-
-        // If the line has a bar | it's probably the title line
-        if (line.includes('|')) {
+      else if (currentSection === 'EXPERIENCE') {
+        if (isBullet) {
+          if (sections.experience.length === 0) sections.experience.push({ title: "Professional Experience", date: "", bullets: [] });
+          sections.experience[sections.experience.length - 1].bullets.push(cleanLine);
+        } else {
+          let dateStr = "";
           const dateRegex = /(?:\[|\b| )((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2})\/?\s*[0-9]{4}\s*[-–]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2}\/?\s*[0-9]{4}|Present)|[0-9]{4})(?:\s*\])?$/i;
           const dMatch = line.match(dateRegex);
-          let dateStr = "";
           if (dMatch) {
             dateStr = dMatch[1].trim();
             line = line.replace(dMatch[0], '').trim();
           }
 
-          if (currentEdu) sections.education.push(currentEdu);
-          currentEdu = {
-            title: line,
-            date: dateStr,
-            details: []
-          };
-        } else if (currentEdu) {
-          // Additional details like GPA or honors
-          currentEdu.details.push(line);
-        } else {
-          // Fallback if there is no | line (non-standard formatting)
-          currentEdu = { title: line, date: "", details: [] };
+          // Multi-line title check
+          if (sections.experience.length > 0 && sections.experience[sections.experience.length - 1].bullets.length === 0 && !line.includes('|')) {
+            sections.experience[sections.experience.length - 1].title += ", " + line.replace(/\|/g, ',').trim();
+            if (!sections.experience[sections.experience.length - 1].date && dateStr) {
+              sections.experience[sections.experience.length - 1].date = dateStr;
+            }
+          } else {
+            sections.experience.push({ title: line.replace(/\|/g, ',').trim(), date: dateStr, bullets: [] });
+          }
         }
       }
-      if (currentEdu) sections.education.push(currentEdu);
-    }
-
-    // --- 5. Extract Certifications ---
-    const certSectionMatch = text.match(/\b(?:LICENSES & CERTIFICATIONS|CERTIFICATIONS)\b[\s\S]*?_{0,}\s*([\s\S]*?)(?=\b(?:SKILLS|EDUCATION|EXPERIENCE|SUMMARY)\b|$)/i);
-    if (certSectionMatch && certSectionMatch[1]) {
-      const certLines = certSectionMatch[1].split('\n').map(l => l.trim().replace(/\*\*/g, '')).filter(Boolean);
-      let currentCert = null;
-
-      for (let i = 0; i < certLines.length; i++) {
-        let line = certLines[i];
-        if (lineIsHeader(line) || /^_{3,}$/.test(line)) continue;
-
-        // Assume the first line is name, second is issuer
-        if (!currentCert) {
-          currentCert = { name: line.replace(/^[•\-]\s*/, ''), issuer: "" };
+      else if (currentSection === 'EDUCATION') {
+        if (line.includes('|') || (sections.education.length === 0 && !isBullet)) {
+          let dateStr = "";
+          const dateRegex = /(?:\[|\b| )((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2})\/?\s*[0-9]{4}\s*[-–]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2}\/?\s*[0-9]{4}|Present)|[0-9]{4})(?:\s*\])?$/i;
+          const dMatch = line.match(dateRegex);
+          if (dMatch) {
+            dateStr = dMatch[1].trim();
+            line = line.replace(dMatch[0], '').trim();
+          }
+          sections.education.push({ title: line.replace(/\|/g, ',').trim(), date: dateStr, details: [] });
+        } else if (sections.education.length > 0) {
+          sections.education[sections.education.length - 1].details.push(cleanLine);
         } else {
-          currentCert.issuer = line.replace(/^[•\-]\s*/, '');
-          sections.certifications.push(currentCert);
-          currentCert = null;
+          sections.education.push({ title: cleanLine, date: "", details: [] });
         }
       }
-      if (currentCert) sections.certifications.push(currentCert);
+      else if (currentSection === 'CERTIFICATIONS') {
+        if (line.includes('|')) {
+          const parts = line.split('|');
+          sections.certifications.push({ name: parts[0].trim(), issuer: parts.slice(1).join('|').trim() });
+        } else {
+          if (sections.certifications.length > 0 && !sections.certifications[sections.certifications.length - 1].issuer) {
+            sections.certifications[sections.certifications.length - 1].issuer = cleanLine;
+          } else {
+            sections.certifications.push({ name: cleanLine, issuer: "" });
+          }
+        }
+      }
+      else if (currentSection === 'SKILLS') {
+        if (line.includes(':')) {
+          const parts = line.split(':')[1].split(',');
+          parts.forEach(p => sections.skills.push(p.trim()));
+        } else {
+          const parts = cleanLine.split(/[,\•\|]/);
+          parts.forEach(p => sections.skills.push(p.trim()));
+        }
+      }
     }
 
-    // Fallback if regex parsing completely failed but we have output
-    if (!sections.summary && !sections.experience.length && text.length > 100) {
+    sections.skills = sections.skills.filter(Boolean).map(s => s.trim()).slice(0, 18);
+
+    if (!sections.summary && sections.experience.length === 0 && sections.education.length === 0) {
       sections.summary = "ATS formatting parsed incorrectly. Showing raw output:\n\n" + text.substring(0, 400) + "...";
     }
-
   } catch (err) {
     console.error("Resume parse error:", err);
     sections.summary = "Error parsing AI output. " + err.message;
   }
-
   return sections;
-}
-
-function lineIsHeader(line) {
-  const l = line.toUpperCase().trim();
-  return l === 'SUMMARY' || l === 'EXPERIENCE' || l === 'EDUCATION' || l === 'SKILLS' || l === 'LICENSES & CERTIFICATIONS';
 }

@@ -107,8 +107,8 @@ export default async function handler(req, res) {
 2. CONTACT INFORMATION: Centered below name, format as: Email | Phone | LinkedIn | Location (one line)
 3. SECTION HEADERS: ALL CAPS, left-aligned, EXACTLY matching the names in Rule 0, followed by a horizontal line (e.g., "EXPERIENCE" then underline)
 4. SUMMARY SECTION: Heading "SUMMARY" followed by a 2-3 sentence highly targeted professional summary.
-5. EDUCATION SECTION: Heading "EDUCATION". Format: Degree Name, Major | University Name | Location [Date right-aligned]. Include relevant modules/coursework on the next line if available in the <resume_text>.
-6. EXPERIENCE SECTION: Heading "EXPERIENCE". Format: Job Title | Company Name | Location [Date right-aligned]. STRICTLY 3-4 bullet points per role max, each starting with "•".
+5. EDUCATION SECTION: Heading "EDUCATION". Format: Degree Name, Major | University Name | Location [Date right-aligned]. NEXT LINE: Include ALL relevant modules/coursework from the <resume_text>.
+6. EXPERIENCE SECTION: Heading "EXPERIENCE". Format: Job Title | Company Name | Location [Date right-aligned]. STRICTLY EXACTLY 3 BULLET POINTS per role, no more, no less, each starting with "•".
 7. LICENSES & CERTIFICATIONS SECTION: Heading "LICENSES & CERTIFICATIONS". Format: Certification Name on line 1, Issuing Organization on line 2.
 8. SKILLS SECTION: Heading "SKILLS". Group by category (e.g., Technical Skills, Software/Tools). Use commas to separate items.
 9. SPACING: Single line break between sections.
@@ -198,8 +198,8 @@ ${jobDescription}
 2. CONTACT INFORMATION: Centered below name, format as: Email | Phone | LinkedIn | Location (one line)
 3. SECTION HEADERS: ALL CAPS, left-aligned, EXACTLY matching the names in Rule 0, followed by a horizontal line (e.g., "EXPERIENCE" then underline)
 4. SUMMARY SECTION: Heading "SUMMARY" followed by a 2-3 sentence highly targeted professional summary.
-5. EDUCATION SECTION: Heading "EDUCATION". Format: Degree Name, Major | University Name | Location [Date right-aligned]. Include relevant modules/coursework on the next line if available in the <resume_text>.
-6. EXPERIENCE SECTION: Heading "EXPERIENCE". Format: Job Title | Company Name | Location [Date right-aligned]. STRICTLY 3-4 bullet points per role max, each starting with "•".
+5. EDUCATION SECTION: Heading "EDUCATION". Format: Degree Name, Major | University Name | Location [Date right-aligned]. NEXT LINE: Include ALL relevant modules/coursework from the <resume_text>.
+6. EXPERIENCE SECTION: Heading "EXPERIENCE". Format: Job Title | Company Name | Location [Date right-aligned]. STRICTLY EXACTLY 3 BULLET POINTS per role, no more, no less, each starting with "•".
 7. LICENSES & CERTIFICATIONS SECTION: Heading "LICENSES & CERTIFICATIONS". Format: Certification Name on line 1, Issuing Organization on line 2.
 8. SKILLS SECTION: Heading "SKILLS". Group by category (e.g., Technical Skills, Software/Tools). Use commas to separate items.
 9. SPACING: Single line break between sections.
