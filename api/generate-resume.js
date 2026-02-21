@@ -108,7 +108,7 @@ export default async function handler(req, res) {
 1. CANDIDATE NAME: Centered, full name only (no titles)
 2. CONTACT INFORMATION: Centered below name, format as: Email | Phone | LinkedIn | Location (one line)
 3. SECTION HEADERS: ALL CAPS, left-aligned, EXACTLY matching the names in Rule 0, followed by a horizontal line (e.g., "EXPERIENCE" then underline)
-4. SUMMARY SECTION: Heading "SUMMARY" followed by a 2-3 sentence highly targeted professional summary.
+4. SUMMARY SECTION: Heading "SUMMARY" followed by a highly targeted professional summary that is about 4-5 sentences (around 5 lines) long.
 5. EDUCATION SECTION: Heading "EDUCATION". Format: Degree Name, Major | University Name | Location | Date. NEXT LINE: Search the <resume_text> for university modules and explicitly list the 4-6 most relevant modules tailored to the <job_description>.
 6. EXPERIENCE SECTION: Heading "EXPERIENCE". List experiences in REVERSE-CHRONOLOGICAL order (most recent first). Format: [EXACT Company Name from resume] - [EXACT Job Title from resume] | Location | Date. STRICTLY EXACTLY 3 BULLET POINTS per role, no more, no less, each starting with "•". DO NOT re-word the companies. Humanize the bullet points so they sound natural, professional, and not AI-generated. You MUST end every bullet point with a full stop (.).
 7. LICENSES & CERTIFICATIONS SECTION: Heading "LICENSES & CERTIFICATIONS". Format: Certification Name | Issuing Organization. Every certification MUST be on its own single line.
@@ -202,7 +202,7 @@ ${jobDescription}
 1. CANDIDATE NAME: Centered, full name only (no titles)
 2. CONTACT INFORMATION: Centered below name, format as: Email | Phone | LinkedIn | Location (one line)
 3. SECTION HEADERS: ALL CAPS, left-aligned, EXACTLY matching the names in Rule 0, followed by a horizontal line (e.g., "EXPERIENCE" then underline)
-4. SUMMARY SECTION: Heading "SUMMARY" followed by a 2-3 sentence highly targeted professional summary.
+4. SUMMARY SECTION: Heading "SUMMARY" followed by a highly targeted professional summary that is about 4-5 sentences (around 5 lines) long.
 5. EDUCATION SECTION: Heading "EDUCATION". Format: Degree Name, Major | University Name | Location | Date. NEXT LINE: Search the <resume_text> for university modules and explicitly list the 4-6 most relevant modules tailored to the <job_description>.
 6. EXPERIENCE SECTION: Heading "EXPERIENCE". List experiences in REVERSE-CHRONOLOGICAL order (most recent first). Format: [EXACT Company Name from resume] - [EXACT Job Title from resume] | Location | Date. STRICTLY EXACTLY 3 BULLET POINTS per role, no more, no less, each starting with "•". DO NOT re-word the companies. Humanize the bullet points so they sound natural, professional, and not AI-generated. You MUST end every bullet point with a full stop (.).
 7. LICENSES & CERTIFICATIONS SECTION: Heading "LICENSES & CERTIFICATIONS". Format: Certification Name | Issuing Organization. Every certification MUST be on its own single line.
