@@ -116,16 +116,17 @@ export function generateAtsResumePdf(claudeOutput, candidateName = "AAYUSH MORE"
         // Job title and company (bold)
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-        const titleLines = doc.splitTextToSize(job.title, contentWidth - 40);
+        const titleLines = doc.splitTextToSize(job.title, contentWidth - 5);
         doc.text(titleLines, margin, y);
+        y += (titleLines.length * 5); // Add space base on lines
 
-        // Date Right Aligned on the first line
+        // Date below title (Left Aligned, Italic)
         if (job.date) {
           doc.setFontSize(9.5);
-          doc.setFont("helvetica", "normal");
-          doc.text(job.date, pageWidth - margin, y, { align: "right" });
+          doc.setFont("helvetica", "italic");
+          doc.text(job.date, margin, y);
+          y += 5;
         }
-        y += (titleLines.length * 5); // Add space base on lines
 
         // Bullets
         doc.setFontSize(9.5);
@@ -359,17 +360,22 @@ function parseClaudeOutput(output) {
         }
       }
       else if (currentSection === 'SKILLS') {
-        if (line.includes(':')) {
-          const splitPoint = line.indexOf(':');
+        // Handle "Technical Skills: A, B" or "Soft Skills - X, Y"
+        if (line.includes(':') || line.includes('-') && !line.startsWith('-')) {
+          const splitChar = line.includes(':') ? ':' : '-';
+          const splitPoint = line.indexOf(splitChar);
           const category = line.substring(0, splitPoint).replace(/[*_]/g, '').trim();
-          const items = line.substring(splitPoint + 1).split(',').map(p => p.trim()).filter(Boolean);
-          sections.skills.push({ category, items });
+          const itemsPart = line.substring(splitPoint + 1);
+          const items = itemsPart.split(/[,\•\|]/).map(p => p.trim()).filter(Boolean);
+          if (items.length > 0) sections.skills.push({ category, items });
         } else {
           const items = cleanLine.split(/[,\•\|]/).map(p => p.trim()).filter(Boolean);
-          if (sections.skills.length > 0 && sections.skills[sections.skills.length - 1].category === 'Other') {
-            sections.skills[sections.skills.length - 1].items.push(...items);
-          } else {
-            sections.skills.push({ category: 'Other', items });
+          if (items.length > 0) {
+            if (sections.skills.length > 0 && sections.skills[sections.skills.length - 1].category === 'Other') {
+              sections.skills[sections.skills.length - 1].items.push(...items);
+            } else {
+              sections.skills.push({ category: 'Other', items });
+            }
           }
         }
       }
