@@ -172,16 +172,23 @@ export function generateAtsResumePdf(claudeOutput, candidateName = "AAYUSH MORE"
           y = margin;
         }
 
-        doc.setFontSize(9.5);
-        doc.setFont("helvetica", "bolditalic");
-        doc.text(cert.name, margin, y);
-        y += 4.5;
-
         if (cert.issuer) {
-          doc.setFontSize(9);
-          doc.setFont("helvetica", "italic");
-          doc.text(cert.issuer, margin, y);
-          y += 5;
+          doc.setFontSize(9.5);
+          doc.setFont("helvetica", "bold");
+          const nameText = cert.name;
+          const issuerText = " - " + cert.issuer;
+
+          doc.text(nameText, margin, y);
+          const nameWidth = doc.getTextWidth(nameText);
+
+          doc.setFont("helvetica", "normal");
+          doc.text(issuerText, margin + nameWidth, y);
+          y += 4.5;
+        } else {
+          doc.setFontSize(9.5);
+          doc.setFont("helvetica", "bold");
+          doc.text(cert.name, margin, y);
+          y += 4.5;
         }
       });
       y += 1;
@@ -218,13 +225,13 @@ export function generateAtsResumePdf(claudeOutput, candidateName = "AAYUSH MORE"
               doc.text(line, margin + catWidth, y);
             } else {
               y += 4.5;
-              doc.text(line, margin + catWidth, y);
+              doc.text(line, margin + catWidth, y); // Keep aligned with category start
             }
           });
         } else {
           doc.setFont("helvetica", "normal");
           const skillsText = skillGroup.items.join("   •   ");
-          const skillsLines = doc.splitTextToSize(skillsText, contentWidth);
+          const skillsLines = doc.splitTextToSize(skillsText, contentWidth - 2);
           skillsLines.forEach((line, i) => {
             if (i > 0) y += 4.5;
             doc.text(line, margin, y);
