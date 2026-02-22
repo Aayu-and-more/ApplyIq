@@ -104,6 +104,7 @@ export default async function handler(req, res) {
 2. Match job requirements with specific achievements and quantifiable results.
 3. Include relevant skills, certifications, and technologies from the <job_description> if the candidate possesses them in their <resume_text>.
 4. STRICT RELEVANCE CHECK: If the <job_description> is completely unrelated (e.g., gibberish, standard filler text, or a role the candidate has zero transferable skills for), DO NOT force relevance or invent keywords.
+5. INPUT VALIDATION: If the <job_description> is just a URL (like a LinkedIn link), a single name, or less than 3 sentences of actual job requirements, you MUST consider it invalid input.
 </ats_optimization_requirements>
 
 <formatting_rules>
@@ -118,7 +119,7 @@ export default async function handler(req, res) {
 8. SKILLS SECTION: Heading "SKILLS". You MUST create EXACTLY two categories: "Technical Skills:" and "Soft Skills:". Group the extracted skills PERFECTLY into these two categories. Hard skills, software, financial modeling, platforms, and tools MUST go ONLY into Technical Skills. Interpersonal traits, cognitive skills, communication, and leadership MUST go ONLY into Soft Skills. Use a colon after the category name and commas to separate items. Do not add any other skill categories.
 9. SPACING: Single line break between sections.
 10. NO markdown formatting (no **bold**, no _italic_, no # headers).
-11. ATS SCORE: At the very end of your final output, after the skills section, evaluate how well the new resume matches the job description and output an ATS score out of 100. Format EXACTLY as: [ATS_SCORE: X] where X is your score. CRITICAL: If the <job_description> is garbage text, completely unrelated, or blank, you MUST output [ATS_SCORE: 0].
+11. ATS SCORE: At the very end of your final output, after the skills section, evaluate how well the new resume matches the job description and output an ATS score out of 100. Format EXACTLY as: [ATS_SCORE: X] where X is your score. CRITICAL: If the <job_description> is garbage text, completely unrelated, blank, or just a URL/link, you MUST output [ATS_SCORE: 0].
 </formatting_rules>
 
 Now rewrite the resume tracking all constraints strictly.
@@ -199,6 +200,7 @@ ${jobDescription}
 2. Match job requirements with specific achievements and quantifiable results.
 3. Include relevant skills, certifications, and technologies from the <job_description> if the candidate possesses them in their <resume_text>.
 4. STRICT RELEVANCE CHECK: If the <job_description> is completely unrelated (e.g., gibberish, standard filler text, or a role the candidate has zero transferable skills for), DO NOT force relevance or invent keywords.
+5. INPUT VALIDATION: If the <job_description> is just a URL (like a LinkedIn link), a single name, or less than 3 sentences of actual job requirements, you MUST consider it invalid input.
 </ats_optimization_requirements>
 
 <formatting_rules>
@@ -213,7 +215,7 @@ ${jobDescription}
 8. SKILLS SECTION: Heading "SKILLS". You MUST create EXACTLY two categories: "Technical Skills:" and "Soft Skills:". Group the extracted skills PERFECTLY into these two categories. Hard skills, software, financial modeling, platforms, and tools MUST go ONLY into Technical Skills. Interpersonal traits, cognitive skills, communication, and leadership MUST go ONLY into Soft Skills. Use a colon after the category name and commas to separate items. Do not add any other skill categories.
 9. SPACING: Single line break between sections.
 10. NO markdown formatting (no **bold**, no _italic_, no # headers).
-11. ATS SCORE: At the very end of your final output, after the skills section, evaluate how well the new resume matches the job description and output an ATS score out of 100. Format EXACTLY as: [ATS_SCORE: X] where X is your score. CRITICAL: If the <job_description> is garbage text, completely unrelated, or blank, you MUST output [ATS_SCORE: 0].
+11. ATS SCORE: At the very end of your final output, after the skills section, evaluate how well the new resume matches the job description and output an ATS score out of 100. Format EXACTLY as: [ATS_SCORE: X] where X is your score. CRITICAL: If the <job_description> is garbage text, completely unrelated, blank, or just a URL/link, you MUST output [ATS_SCORE: 0].
 </formatting_rules>
 
 Now rewrite the resume tracking all constraints strictly.
