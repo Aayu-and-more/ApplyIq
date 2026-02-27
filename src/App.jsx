@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { generateAtsResumePdf } from "./lib/resumePdfGenerator";
+import { fetchRecentApplications } from "./lib/gmailSync";
 import { useAppStore } from "./store/useAppStore";
 import { LoginView } from "./pages/LoginView";
 
@@ -63,8 +64,8 @@ import { AddCvModal } from "./components/modals/AddCvModal";
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function ApplyIQ() {
   const {
-    user, authLoading, apps, cvLibrary, weeklyGoal, dark, view, notification,
-    setDark, setView, setNotification, saveApplication, deleteApplication, updateApplicationStatus,
+    user, authLoading, apps, cvLibrary, weeklyGoal, dark, view, notification, googleAccessToken,
+    setDark, setView, setNotification, saveApplication, deleteApplication, deleteAllApplications, updateApplicationStatus,
     saveCv, deleteCv, setDefaultCv, saveWeeklyGoal, initStore, logout
   } = useAppStore();
 
@@ -83,6 +84,7 @@ export default function ApplyIQ() {
   const [resumeOutput, setResumeOutput] = useState("");
   const [atsScore, setAtsScore] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSyncingGmail, setIsSyncingGmail] = useState(false);
   const [cvBeingAdded, setCvBeingAdded] = useState({ name: "", base64: null, fileName: null });
   const [copySuccess, setCopySuccess] = useState(false);
   const emptyForm = { company: "", role: "", date: new Date().toISOString().slice(0, 10), source: "LinkedIn", status: "Applied", salary: "", priority: "Target", notes: "" };
@@ -105,6 +107,67 @@ export default function ApplyIQ() {
     if (!form.company.trim() || !form.role.trim()) return;
     saveApplication(form);
     setShowAddModal(false); setForm(emptyForm);
+  };
+
+  const handleGmailSync = async () => {
+    if (!googleAccessToken) {
+      setNotification({ msg: "Please disconnect and re-login with Google to enable Gmail sync.", type: "error" });
+      return;
+    }
+
+    setIsSyncingGmail(true);
+    try {
+      const foundApps = await fetchRecentApplications(googleAccessToken);
+
+      if (foundApps.length === 0) {
+        setNotification({ msg: "No new ATS applications found in the last 30 days", type: "success" });
+        setIsSyncingGmail(false);
+        return;
+      }
+
+      let addedCount = 0;
+      let updatedCount = 0;
+
+      // Status hierarchy for upgrades
+      const statusWeight = { "Applied": 1, "Screening": 2, "Interview": 3, "Offer": 4, "Rejected": 5, "Ghosted": 0 };
+
+      for (const app of foundApps) {
+        // Find existing application by matching company and role
+        const existingApp = apps.find(existing =>
+          existing.company.toLowerCase() === app.company.toLowerCase() &&
+          existing.role.toLowerCase() === app.role.toLowerCase()
+        );
+
+        if (!existingApp) {
+          // It's brand new, save it
+          await saveApplication(app);
+          addedCount++;
+        } else {
+          // It exists! Check if the new email represents a status upgrade
+          const oldWeight = statusWeight[existingApp.status] || 0;
+          const newWeight = statusWeight[app.status] || 0;
+
+          if (newWeight > oldWeight) {
+            // Upgrade the status!
+            await updateApplicationStatus(existingApp.id, app.status);
+            updatedCount++;
+          }
+        }
+      }
+
+      if (addedCount > 0 || updatedCount > 0) {
+        let msgParts = [];
+        if (addedCount > 0) msgParts.push(`added ${addedCount} new`);
+        if (updatedCount > 0) msgParts.push(`updated ${updatedCount} existing`);
+        setNotification({ msg: `Successfully ${msgParts.join(' and ')} applications!`, type: "success" });
+      } else {
+        setNotification({ msg: "Apps found, but they are already up to date in your pipeline.", type: "success" });
+      }
+    } catch (err) {
+      setNotification({ msg: "Failed to sync with Gmail.", type: "error" });
+    } finally {
+      setIsSyncingGmail(false);
+    }
   };
 
   const handleEdit = app => { setForm({ ...app }); setShowAddModal(true); };
@@ -262,9 +325,9 @@ export default function ApplyIQ() {
         </div>
 
         {/* View Routing */}
-        {view === "dashboard" && <DashboardView apps={apps} staleApps={staleApps} thisWeekApps={thisWeekApps} weeklyGoal={weeklyGoal} goalPct={goalPct} responseRate={responseRate} offerCount={offerCount} interviewRate={interviewRate} statusDist={statusDist} setView={setView} setShowGoalModal={setShowGoalModal} exportCSV={exportCSV} />}
+        {view === "dashboard" && <DashboardView apps={apps} staleApps={staleApps} thisWeekApps={thisWeekApps} weeklyGoal={weeklyGoal} goalPct={goalPct} responseRate={responseRate} offerCount={offerCount} interviewRate={interviewRate} statusDist={statusDist} setView={setView} setShowGoalModal={setShowGoalModal} exportCSV={exportCSV} isSyncingGmail={isSyncingGmail} handleGmailSync={handleGmailSync} />}
         {view === "kanban" && <KanbanView apps={apps} handleKanbanDrop={handleKanbanDrop} />}
-        {view === "applications" && <ApplicationsView filteredApps={filteredApps} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleEdit={handleEdit} handleDelete={deleteApplication} setShowAddModal={setShowAddModal} exportCSV={exportCSV} />}
+        {view === "applications" && <ApplicationsView filteredApps={filteredApps} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleEdit={handleEdit} handleDelete={deleteApplication} handleDeleteAll={deleteAllApplications} setShowAddModal={setShowAddModal} exportCSV={exportCSV} />}
         {view === "analytics" && <AnalyticsView apps={apps} staleApps={staleApps} responseRate={responseRate} interviewRate={interviewRate} offerCount={offerCount} />}
         {view === "resume" && <ResumeView cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setDefaultCv={setDefaultCv} deleteCv={deleteCv} resumeJD={resumeJD} setResumeJD={setResumeJD} resumeOutput={resumeOutput} atsScore={atsScore} isGenerating={isGenerating} handleGenerateResume={handleGenerateResume} handleCopy={handleCopy} handleDownloadPdf={handleDownloadPdf} copySuccess={copySuccess} setShowCvModal={setShowCvModal} />}
       </div>

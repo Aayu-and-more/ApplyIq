@@ -27,20 +27,38 @@ export const AnalyticsView = ({ apps, staleApps, responseRate, interviewRate, of
             {/* Chart Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-                {/* Line Chart */}
+                {/* Status Breakdown Chart */}
                 <div className="surface rounded-2xl shadow-sm p-5 lg:col-span-2 flex flex-col">
-                    <div className="text-[11.5px] font-bold text-muted uppercase tracking-widest mb-4">Monthly Volume vs Response Rate</div>
+                    <div className="text-[11.5px] font-bold text-muted uppercase tracking-widest mb-4">Application Status Breakdown</div>
                     <div className="flex-1 min-h-[220px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={monthly} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-800" />
-                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#8898b0" }} axisLine={false} tickLine={false} />
+                            <BarChart data={[
+                                { status: "Applied", count: apps.filter(a => a.status === "Applied").length },
+                                { status: "Screening", count: apps.filter(a => a.status === "Screening").length },
+                                { status: "Interview", count: apps.filter(a => a.status === "Interview").length },
+                                { status: "Offer", count: offerCount },
+                                { status: "Rejected", count: apps.filter(a => a.status === "Rejected").length },
+                                { status: "Ghosted", count: apps.filter(a => a.status === "Ghosted").length }
+                            ].filter(d => d.count > 0)} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-800" vertical={false} />
+                                <XAxis dataKey="status" tick={{ fontSize: 11, fill: "#8898b0" }} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fontSize: 11, fill: "#8898b0" }} axisLine={false} tickLine={false} />
-                                <Tooltip contentStyle={{ backgroundColor: 'var(--tw-prose-body)', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }} />
-                                <Legend wrapperStyle={{ fontSize: 11.5, paddingTop: '10px' }} />
-                                <Line type="monotone" dataKey="apps" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2 }} activeDot={{ r: 5 }} name="Applications" />
-                                <Line type="monotone" dataKey="responses" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 2 }} activeDot={{ r: 5 }} name="Responses" />
-                            </LineChart>
+                                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ backgroundColor: 'var(--tw-prose-body)', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }} />
+                                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                    {
+                                        [
+                                            { status: "Applied", count: apps.filter(a => a.status === "Applied").length },
+                                            { status: "Screening", count: apps.filter(a => a.status === "Screening").length },
+                                            { status: "Interview", count: apps.filter(a => a.status === "Interview").length },
+                                            { status: "Offer", count: offerCount },
+                                            { status: "Rejected", count: apps.filter(a => a.status === "Rejected").length },
+                                            { status: "Ghosted", count: apps.filter(a => a.status === "Ghosted").length }
+                                        ].filter(d => d.count > 0).map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.status]} />
+                                        ))
+                                    }
+                                </Bar>
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>

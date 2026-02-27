@@ -14,6 +14,7 @@ export const useAppStore = create((set, get) => ({
     weeklyGoal: 10,
     dark: true,
     view: "dashboard",
+    googleAccessToken: null, // Store token for Gmail API
 
     // UI State
     notification: null,
@@ -30,14 +31,25 @@ export const useAppStore = create((set, get) => ({
     loginWithGoogle: async () => {
         try {
             const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
+            provider.addScope('https://www.googleapis.com/auth/gmail.readonly');
+
+            const result = await signInWithPopup(auth, provider);
+
+            // This gives you a Google Access Token. You can use it to access the Google API.
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            if (credential) {
+                const token = credential.accessToken;
+                set({ googleAccessToken: token });
+                // We don't save this to Firestore, just keep in app memory for the session
+            }
+
         } catch (error) {
             get().setNotification({ msg: error.message, type: "error" });
         }
     },
     logout: async () => {
         await signOut(auth);
-        set({ apps: [], cvLibrary: [] }); // Clear data on logout
+        set({ apps: [], cvLibrary: [], googleAccessToken: null }); // Clear data on logout
     },
 
     // Database Actions (Applications)
@@ -70,6 +82,24 @@ export const useAppStore = create((set, get) => ({
             get().setNotification({ msg: "Application deleted", type: "success" });
         } catch (error) {
             get().setNotification({ msg: "Failed to delete application", type: "error" });
+        }
+    },
+    deleteAllApplications: async () => {
+        const { user, apps } = get();
+        if (!user) return;
+        if (apps.length === 0) {
+            get().setNotification({ msg: "No applications to delete.", type: "error" });
+            return;
+        }
+        if (!window.confirm(`Are you sure you want to delete ALL ${apps.length} applications? This action cannot be undone.`)) return;
+
+        try {
+            for (const app of apps) {
+                await deleteDoc(doc(db, "users", user.uid, "applications", app.id));
+            }
+            get().setNotification({ msg: "All applications deleted successfully", type: "success" });
+        } catch (error) {
+            get().setNotification({ msg: "Failed to delete all applications", type: "error" });
         }
     },
     updateApplicationStatus: async (id, newStatus) => {

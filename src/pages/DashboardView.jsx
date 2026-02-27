@@ -7,6 +7,7 @@ import {
 const Icon = ({ name, className = "w-4 h-4" }) => {
     const icons = {
         bell: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></>,
+        refresh: <><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" /></>
     };
     return (
         <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -25,18 +26,31 @@ const WEEKLY_DATA = [
     { week: "W3", apps: 8 }, { week: "W4", apps: 22 },
 ];
 
-export const DashboardView = ({ apps, staleApps, thisWeekApps, weeklyGoal, goalPct, responseRate, offerCount, interviewRate, statusDist, setView, setShowGoalModal, exportCSV }) => (
+export const DashboardView = ({ apps, staleApps, thisWeekApps, weeklyGoal, goalPct, responseRate, offerCount, interviewRate, statusDist, setView, setShowGoalModal, exportCSV, isSyncingGmail, handleGmailSync }) => (
     <div className="flex flex-col gap-5">
 
         {/* Alerts */}
-        {staleApps.length > 0 && (
-            <div
-                onClick={() => setView("analytics")}
-                className="bg-orange-500/10 border border-orange-500 rounded-xl px-4 py-3 flex items-center gap-2.5 text-orange-500 text-[13px] cursor-pointer hover:bg-orange-500/20 transition-colors"
+        <div className="flex justify-between items-center gap-4">
+            {staleApps.length > 0 ? (
+                <div
+                    onClick={() => setView("analytics")}
+                    className="flex-1 bg-orange-500/10 border border-orange-500 rounded-xl px-4 py-3 flex items-center gap-2.5 text-orange-500 text-[13px] cursor-pointer hover:bg-orange-500/20 transition-colors"
+                >
+                    <strong>{staleApps.length} application{staleApps.length > 1 ? "s" : ""} need follow-up</strong> — click to review
+                </div>
+            ) : <div className="flex-1" />}
+
+            <button
+                onClick={handleGmailSync}
+                disabled={isSyncingGmail}
+                className={`py-3 px-5 rounded-xl text-[13px] font-bold shadow-sm transition-all flex items-center gap-2
+                    ${isSyncingGmail ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed border border-gray-200 dark:border-gray-700' : 'bg-white dark:bg-[#141e30] border border-gray-200 dark:border-[#1a2840] hover:border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer'}
+                `}
             >
-                <strong>{staleApps.length} application{staleApps.length > 1 ? "s" : ""} need follow-up</strong> — click to review
-            </div>
-        )}
+                <Icon name="refresh" className={`w-4 h-4 ${isSyncingGmail ? 'animate-spin' : ''}`} />
+                {isSyncingGmail ? 'Syncing...' : 'Sync Gmail Apps'}
+            </button>
+        </div>
 
         {/* Top Stat Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
