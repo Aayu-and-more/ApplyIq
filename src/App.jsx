@@ -8,6 +8,7 @@ import { LoginView } from "./pages/LoginView";
 const KANBAN_COLS = ["Applied", "Screening", "Interview", "Offer", "Rejected", "Ghosted"];
 const NAV = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
+  { id: "jobhunt", label: "Job Hunt", icon: "search" },
   { id: "kanban", label: "Pipeline", icon: "kanban" },
   { id: "applications", label: "Applications", icon: "table" },
   { id: "analytics", label: "Analytics", icon: "chart" },
@@ -55,6 +56,7 @@ import { KanbanView } from "./pages/KanbanView";
 import { ApplicationsView } from "./pages/ApplicationsView";
 import { AnalyticsView } from "./pages/AnalyticsView";
 import { ResumeView } from "./pages/ResumeView";
+import { JobHuntView } from "./pages/JobHuntView";
 
 // ─── MODALS ───────────────────────────────────────────────────────────────────
 import { AddAppModal } from "./components/modals/AddAppModal";
@@ -218,10 +220,12 @@ export default function ApplyIQ() {
     if (!resumeJD.trim()) { setNotification({ msg: "Please paste a job description", type: "error" }); return; }
     setIsGenerating(true); setResumeOutput("");
     try {
+      const cvBase64 = cv.base64 || localStorage.getItem(`applyiq_cv_${cv.id}`);
+      if (!cvBase64) throw new Error("CV not found on this device. Please re-upload your PDF.");
       const res = await fetch("/api/generate-resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cvBase64: cv.base64, jobDescription: resumeJD }),
+        body: JSON.stringify({ cvBase64, jobDescription: resumeJD }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -313,6 +317,7 @@ export default function ApplyIQ() {
               {view === "dashboard" && `${apps.length} total · ${thisWeekApps} this week · ${responseRate}% response rate`}
               {view === "kanban" && "Drag cards between columns to update status"}
               {view === "applications" && `${filteredApps.length} of ${apps.length} applications`}
+              {view === "jobhunt" && "Find new finance roles in Ireland · refreshed daily"}
               {view === "analytics" && "Conversion metrics, trends, and follow-up tracking"}
               {view === "resume" && `${cvLibrary.length} CV${cvLibrary.length !== 1 ? "s" : ""} in library · AI-powered ATS optimisation`}
             </div>
@@ -325,6 +330,7 @@ export default function ApplyIQ() {
         </div>
 
         {/* View Routing */}
+        {view === "jobhunt" && <JobHuntView cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setShowCvModal={setShowCvModal} saveApplication={saveApplication} />}
         {view === "dashboard" && <DashboardView apps={apps} staleApps={staleApps} thisWeekApps={thisWeekApps} weeklyGoal={weeklyGoal} goalPct={goalPct} responseRate={responseRate} offerCount={offerCount} interviewRate={interviewRate} statusDist={statusDist} setView={setView} setShowGoalModal={setShowGoalModal} exportCSV={exportCSV} isSyncingGmail={isSyncingGmail} handleGmailSync={handleGmailSync} />}
         {view === "kanban" && <KanbanView apps={apps} handleKanbanDrop={handleKanbanDrop} />}
         {view === "applications" && <ApplicationsView filteredApps={filteredApps} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleEdit={handleEdit} handleDelete={deleteApplication} handleDeleteAll={deleteAllApplications} setShowAddModal={setShowAddModal} exportCSV={exportCSV} />}

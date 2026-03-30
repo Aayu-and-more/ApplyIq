@@ -11,6 +11,7 @@ export const useAppStore = create((set, get) => ({
     // App State
     apps: [],
     cvLibrary: [],
+    jobHuntResults: [],
     weeklyGoal: 10,
     dark: true,
     view: "dashboard",
@@ -22,6 +23,7 @@ export const useAppStore = create((set, get) => ({
     // Actions
     setDark: (dark) => set({ dark }),
     setView: (view) => set({ view }),
+    setJobHuntResults: (jobHuntResults) => set({ jobHuntResults }),
     setNotification: (notification) => {
         set({ notification });
         setTimeout(() => set({ notification: null }), 3000);
@@ -117,30 +119,34 @@ export const useAppStore = create((set, get) => ({
         const { user } = get();
         if (!user) return;
         try {
-            const isNew = !cvData.id;
             const id = cvData.id || crypto.randomUUID();
+
+            // Save PDF base64 in localStorage (free, no Firestore size limits)
+            if (cvData.base64) {
+                localStorage.setItem(`applyiq_cv_${id}`, cvData.base64);
+            }
+
+            // Save only metadata to Firestore
             const docRef = doc(db, "users", user.uid, "cvs", id);
             const dataToSave = {
-                ...cvData,
                 id,
+                name: cvData.name,
+                fileName: cvData.fileName || null,
                 userId: user.uid,
             };
-
-            // If this is the first CV, make it default
-            if (get().cvLibrary.length === 0) {
-                dataToSave.isDefault = true;
-            }
+            if (get().cvLibrary.length === 0) dataToSave.isDefault = true;
 
             await setDoc(docRef, dataToSave, { merge: true });
             get().setNotification({ msg: "CV added to library!", type: "success" });
         } catch (error) {
-            get().setNotification({ msg: "Failed to save CV", type: "error" });
+            get().setNotification({ msg: `Failed to save CV: ${error.message}`, type: "error" });
         }
     },
     deleteCv: async (id) => {
         const { user } = get();
         if (!user) return;
         try {
+            localStorage.removeItem(`applyiq_cv_${id}`);
             await deleteDoc(doc(db, "users", user.uid, "cvs", id));
             get().setNotification({ msg: "CV deleted", type: "success" });
         } catch (error) {
