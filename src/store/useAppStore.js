@@ -114,6 +114,101 @@ export const useAppStore = create((set, get) => ({
         }
     },
 
+    // Discovery: save a batch of scored discovered jobs to Firestore, deduped
+    saveDiscoveredJobs: async (jobs) => {
+        const { user, apps } = get();
+        if (!user) return 0;
+
+        // Build dedup sets from existing apps (normalize to lowercase for consistent matching)
+        const existingUrls = new Set(apps.map(a => (a.jobUrl || "").toLowerCase().trim()).filter(Boolean));
+        const existingCombos = new Set(apps.map(a =>
+            `${(a.company || "").toLowerCase().trim()}::${(a.role || "").toLowerCase().trim()}`
+        ));
+
+        // Load skipped URLs from localStorage
+        let skippedUrls = new Set();
+        try {
+            const raw = localStorage.getItem("applyiq_skipped_urls");
+            if (raw) skippedUrls = new Set(JSON.parse(raw));
+        } catch {}
+
+        let saved = 0;
+        for (const job of jobs) {
+            const urlKey = (job.url || "").toLowerCase().trim();
+            const comboKey = `${(job.company || "").toLowerCase().trim()}::${(job.title || "").toLowerCase().trim()}`;
+            if (urlKey && (existingUrls.has(urlKey) || skippedUrls.has(urlKey))) continue;
+            if (existingCombos.has(comboKey)) continue;
+
+            const id = crypto.randomUUID();
+            try {
+                await setDoc(doc(db, "users", user.uid, "applications", id), {
+                    id,
+                    userId: user.uid,
+                    status: "Discovered",
+                    company: job.company,
+                    role: job.title,
+                    date: new Date().toISOString().slice(0, 10),
+                    source: job.source === "linkedin" ? "LinkedIn" : job.source === "indeed" ? "Indeed" : "Company Site",
+                    priority: "Target",
+                    salary: job.salary || "",
+                    notes: "",
+                    jobUrl: job.url || null,
+                    jobDescription: job.description || null,
+                    externalId: job.externalId || null,
+                    discoverySource: job.source || null,
+                    discoveryScore: job.discoveryScore || 0,
+                    discoveryScoreBreakdown: job.discoveryScoreBreakdown || null,
+                    sponsorTier: job.sponsorTier || "unknown",
+                    discoveredAt: serverTimestamp(),
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                });
+                existingUrls.add(urlKey);
+                existingCombos.add(comboKey);
+                saved++;
+            } catch (err) {
+                console.error("saveDiscoveredJob error:", err);
+            }
+        }
+        return saved;
+    },
+
+    // Discovery: approve — move from Discovered to Applied
+    approveDiscovery: async (id) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+            await setDoc(doc(db, "users", user.uid, "applications", id), {
+                status: "Applied",
+                date: new Date().toISOString().slice(0, 10),
+                updatedAt: serverTimestamp(),
+            }, { merge: true });
+            get().setNotification({ msg: "Marked as Applied!", type: "success" });
+        } catch {
+            get().setNotification({ msg: "Failed to update status", type: "error" });
+        }
+    },
+
+    // Discovery: skip — delete from Firestore + store URL in localStorage skiplist
+    skipDiscovery: async (id) => {
+        const { user, apps } = get();
+        if (!user) return;
+        const app = apps.find(a => a.id === id);
+        if (app?.jobUrl) {
+            try {
+                const raw = localStorage.getItem("applyiq_skipped_urls");
+                const arr = raw ? JSON.parse(raw) : [];
+                arr.push(app.jobUrl.toLowerCase().trim());
+                localStorage.setItem("applyiq_skipped_urls", JSON.stringify(arr));
+            } catch {}
+        }
+        try {
+            await deleteDoc(doc(db, "users", user.uid, "applications", id));
+        } catch {
+            get().setNotification({ msg: "Failed to skip job", type: "error" });
+        }
+    },
+
     // Database Actions (CVs)
     saveCv: async (cvData) => {
         const { user } = get();

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { generateAtsResumePdf } from "./lib/resumePdfGenerator";
 import { fetchRecentApplications } from "./lib/gmailSync";
+import { scoreJob } from "./lib/discoverScoring";
 import { useAppStore } from "./store/useAppStore";
 import { LoginView } from "./pages/LoginView";
 
@@ -68,7 +69,8 @@ export default function ApplyIQ() {
   const {
     user, authLoading, apps, cvLibrary, weeklyGoal, dark, view, notification, googleAccessToken,
     setDark, setView, setNotification, saveApplication, deleteApplication, deleteAllApplications, updateApplicationStatus,
-    saveCv, deleteCv, setDefaultCv, saveWeeklyGoal, initStore, logout
+    saveCv, deleteCv, setDefaultCv, saveWeeklyGoal, initStore, logout,
+    saveDiscoveredJobs, approveDiscovery, skipDiscovery
   } = useAppStore();
 
   useEffect(() => {
@@ -87,13 +89,14 @@ export default function ApplyIQ() {
   const [atsScore, setAtsScore] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSyncingGmail, setIsSyncingGmail] = useState(false);
+  const [isRunningDiscovery, setIsRunningDiscovery] = useState(false);
   const [cvBeingAdded, setCvBeingAdded] = useState({ name: "", base64: null, fileName: null });
   const [copySuccess, setCopySuccess] = useState(false);
   const emptyForm = { company: "", role: "", date: new Date().toISOString().slice(0, 10), source: "LinkedIn", status: "Applied", salary: "", priority: "Target", notes: "" };
   const [form, setForm] = useState(emptyForm);
 
   const today = new Date();
-  const staleApps = apps.filter(a => { const d = (today - new Date(a.date)) / 86400000; return d > 14 && (a.status === "Applied" || a.status === "Screening"); });
+  const staleApps = apps.filter(a => { if (a.status === "Discovered") return false; const d = (today - new Date(a.date)) / 86400000; return d > 14 && (a.status === "Applied" || a.status === "Screening"); });
   const thisWeekApps = apps.filter(a => (today - new Date(a.date)) / 86400000 <= 7).length;
   const responseRate = apps.length ? Math.round((apps.filter(a => ["Screening", "Interview", "Offer"].includes(a.status)).length / apps.length) * 100) : 0;
   const offerCount = apps.filter(a => a.status === "Offer").length;
@@ -131,14 +134,21 @@ export default function ApplyIQ() {
       let updatedCount = 0;
 
       // Status hierarchy for upgrades
-      const statusWeight = { "Applied": 1, "Screening": 2, "Interview": 3, "Offer": 4, "Rejected": 5, "Ghosted": 0 };
+      const statusWeight = { "Discovered": 0, "Applied": 1, "Screening": 2, "Interview": 3, "Offer": 4, "Rejected": 5, "Ghosted": 0 };
+
+      const normalize = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
 
       for (const app of foundApps) {
-        // Find existing application by matching company and role
-        const existingApp = apps.find(existing =>
-          existing.company.toLowerCase() === app.company.toLowerCase() &&
-          existing.role.toLowerCase() === app.role.toLowerCase()
-        );
+        const normCompany = normalize(app.company);
+        const normRole = normalize(app.role);
+        // Find existing application — fuzzy company match (one contains the other) + exact role match
+        const existingApp = apps.find(existing => {
+          const ec = normalize(existing.company);
+          const er = normalize(existing.role);
+          const companyMatch = ec === normCompany || ec.includes(normCompany) || normCompany.includes(ec);
+          const roleMatch = er === normRole;
+          return companyMatch && roleMatch;
+        });
 
         if (!existingApp) {
           // It's brand new, save it
@@ -169,6 +179,44 @@ export default function ApplyIQ() {
       setNotification({ msg: "Failed to sync with Gmail.", type: "error" });
     } finally {
       setIsSyncingGmail(false);
+    }
+  };
+
+  const handlePullJobs = async () => {
+    setIsRunningDiscovery(true);
+    try {
+      const res = await fetch("/api/discovery-run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      const rawJobs = data.jobs || [];
+      if (rawJobs.length === 0) {
+        setNotification({ msg: "Scrapers returned 0 jobs — try again later.", type: "success" });
+        return;
+      }
+
+      // Score client-side, take top 10
+      const scored = rawJobs.map(job => {
+        const result = scoreJob(job);
+        return { ...job, discoveryScore: result.total, discoveryScoreBreakdown: result.breakdown, matchedRole: result.matchedRole, sponsorTier: result.sponsorTier };
+      });
+      scored.sort((a, b) => b.discoveryScore - a.discoveryScore);
+      const top10 = scored.slice(0, 10);
+
+      const saved = await saveDiscoveredJobs(top10);
+      const skipped = top10.length - saved;
+      const msg = saved > 0
+        ? `Added ${saved} new job${saved !== 1 ? "s" : ""} to Discovered${skipped > 0 ? ` (${skipped} already in pipeline)` : ""}`
+        : "All matches already in your pipeline";
+      setNotification({ msg, type: "success" });
+    } catch (err) {
+      setNotification({ msg: `Discovery failed: ${err.message}`, type: "error" });
+    } finally {
+      setIsRunningDiscovery(false);
     }
   };
 
@@ -322,15 +370,17 @@ export default function ApplyIQ() {
               {view === "resume" && `${cvLibrary.length} CV${cvLibrary.length !== 1 ? "s" : ""} in library · AI-powered ATS optimisation`}
             </div>
           </div>
-          {view !== "resume" && (
-            <button onClick={() => { setForm(emptyForm); setShowAddModal(true); }} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white border-none rounded-lg text-[13px] font-semibold hover:bg-blue-700 transition-colors cursor-pointer">
-              <Icon name="plus" className="w-[13px] h-[13px]" />Add Application
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {view !== "resume" && (
+              <button onClick={() => { setForm(emptyForm); setShowAddModal(true); }} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white border-none rounded-lg text-[13px] font-semibold hover:bg-blue-700 transition-colors cursor-pointer">
+                <Icon name="plus" className="w-[13px] h-[13px]" />Add Application
+              </button>
+            )}
+          </div>
         </div>
 
         {/* View Routing */}
-        {view === "jobhunt" && <JobHuntView cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setShowCvModal={setShowCvModal} saveApplication={saveApplication} />}
+        {view === "jobhunt" && <JobHuntView apps={apps} isRunningDiscovery={isRunningDiscovery} handlePullJobs={handlePullJobs} approveDiscovery={approveDiscovery} skipDiscovery={skipDiscovery} cvLibrary={cvLibrary} selectedCvId={selectedCvId} setSelectedCvId={setSelectedCvId} setShowCvModal={setShowCvModal} setNotification={setNotification} />}
         {view === "dashboard" && <DashboardView apps={apps} staleApps={staleApps} thisWeekApps={thisWeekApps} weeklyGoal={weeklyGoal} goalPct={goalPct} responseRate={responseRate} offerCount={offerCount} interviewRate={interviewRate} statusDist={statusDist} setView={setView} setShowGoalModal={setShowGoalModal} exportCSV={exportCSV} isSyncingGmail={isSyncingGmail} handleGmailSync={handleGmailSync} />}
         {view === "kanban" && <KanbanView apps={apps} handleKanbanDrop={handleKanbanDrop} />}
         {view === "applications" && <ApplicationsView filteredApps={filteredApps} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterStatus={filterStatus} setFilterStatus={setFilterStatus} handleEdit={handleEdit} handleDelete={deleteApplication} handleDeleteAll={deleteAllApplications} setShowAddModal={setShowAddModal} exportCSV={exportCSV} />}
